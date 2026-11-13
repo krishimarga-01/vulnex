@@ -12,7 +12,7 @@ export default function RootLayout() {
     <QueryClientProvider client={queryClient}>
       <MobileAuthProvider>
         <LocationProvider>
-          <StatusBar style="light" backgroundColor="#10243A" />
+          <StatusBar style="light" backgroundColor="#0B131E" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />
             <Stack.Screen name="onboarding" />

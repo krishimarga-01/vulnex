@@ -11,7 +11,15 @@ import {
 import { useRouter } from 'expo-router';
 import { Video, ResizeMode, AVPlaybackStatus } from 'expo-av';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { ChevronRight, MapPin, Crosshair, ShieldCheck, ArrowRight } from 'lucide-react-native';
+import {
+  ChevronRight,
+  MapPin,
+  Building2,
+  Zap,
+  Radio,
+  Crosshair,
+  ShieldAlert,
+} from 'lucide-react-native';
 import { useMobileAuth } from '../context/MobileAuthContext';
 import { useLocation } from '../context/LocationContext';
 import LocationPickerModal from '../components/LocationPickerModal';
@@ -24,28 +32,29 @@ export default function IntroSplashScreen() {
   const insets = useSafeAreaInsets();
   const videoRef = useRef<Video>(null);
   const { isAuthenticated } = useMobileAuth();
-  const { location, isLocationConfigured, detectGpsLocation, openLocationPicker, isLoading } = useLocation();
+  const {
+    location,
+    isLocationConfigured,
+    detectGpsLocation,
+    openLocationPicker,
+    isLoading,
+  } = useLocation();
 
   const [videoFinished, setVideoFinished] = useState(false);
-  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [showLocationScreen, setShowLocationScreen] = useState(false);
 
   const proceedToApp = useCallback(() => {
     hasPlayedIntroSession = true;
-    if (isAuthenticated) {
-      router.replace('/(tabs)');
-    } else {
-      router.replace('/(tabs)'); // Direct access to live public disaster intelligence
-    }
-  }, [isAuthenticated, router]);
+    router.replace('/(tabs)');
+  }, [router]);
 
-  // If already played this session and location is ready, bypass directly
+  // If already played this session, skip intro directly
   useEffect(() => {
     if (hasPlayedIntroSession) {
       proceedToApp();
     }
   }, [proceedToApp]);
 
-  // Handle when video finishes playing
   const handleVideoDone = useCallback(() => {
     if (videoFinished) return;
     setVideoFinished(true);
@@ -53,18 +62,16 @@ export default function IntroSplashScreen() {
     if (isLocationConfigured) {
       proceedToApp();
     } else {
-      setShowLocationPrompt(true);
+      setShowLocationScreen(true);
     }
   }, [videoFinished, isLocationConfigured, proceedToApp]);
 
-  // Safety fallback timer: if playback doesn't complete within 20 seconds, prompt location
   useEffect(() => {
     const safetyTimer = setTimeout(() => {
       if (!videoFinished) {
         handleVideoDone();
       }
-    }, 20000);
-
+    }, 18000);
     return () => clearTimeout(safetyTimer);
   }, [videoFinished, handleVideoDone]);
 
@@ -75,126 +82,134 @@ export default function IntroSplashScreen() {
       }
       return;
     }
-
     if (status.didJustFinish) {
       handleVideoDone();
     }
   };
 
-  const handleGpsEnable = async () => {
-    const success = await detectGpsLocation();
+  const handleAllowLocation = async () => {
+    await detectGpsLocation();
     proceedToApp();
   };
 
-  const handleManualPick = () => {
+  const handleManualLocation = () => {
     openLocationPicker();
   };
 
-  // If location becomes configured while modal was open, proceed
+  // When location configured via modal, proceed
   useEffect(() => {
-    if (showLocationPrompt && isLocationConfigured) {
+    if (showLocationScreen && isLocationConfigured) {
       proceedToApp();
     }
-  }, [showLocationPrompt, isLocationConfigured, proceedToApp]);
+  }, [showLocationScreen, isLocationConfigured, proceedToApp]);
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Fullscreen Video Player */}
-      <Video
-        ref={videoRef}
-        source={require('../assets/intro.mp4')}
-        style={styles.video}
-        resizeMode={ResizeMode.CONTAIN}
-        shouldPlay={!hasPlayedIntroSession && !videoFinished}
-        isLooping={false}
-        isMuted={false}
-        useNativeControls={false}
-        onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
-        onError={() => handleVideoDone()}
-      />
-
-      {/* Skip Intro Button */}
+      {/* Screen 1: Intro Splash / Video */}
       {!videoFinished && (
-        <TouchableOpacity
-          style={[styles.skipButton, { top: Math.max(insets.top + 14, 32) }]}
-          activeOpacity={0.7}
-          onPress={handleVideoDone}
-          accessibilityRole="button"
-          accessibilityLabel="Skip intro video"
-        >
-          <Text style={styles.skipText}>Skip Intro</Text>
-          <ChevronRight size={14} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.videoWrapper}>
+          <Video
+            ref={videoRef}
+            source={require('../assets/intro.mp4')}
+            style={styles.video}
+            resizeMode={ResizeMode.CONTAIN}
+            shouldPlay={!hasPlayedIntroSession && !videoFinished}
+            isLooping={false}
+            isMuted={false}
+            useNativeControls={false}
+            onPlaybackStatusUpdate={handlePlaybackStatusUpdate}
+            onError={() => handleVideoDone()}
+          />
+
+          {/* Non-intrusive Skip Intro Button */}
+          <TouchableOpacity
+            style={[styles.skipButton, { top: Math.max(insets.top + 14, 34) }]}
+            activeOpacity={0.7}
+            onPress={handleVideoDone}
+          >
+            <Text style={styles.skipText}>Skip</Text>
+            <ChevronRight size={14} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
       )}
 
-      {/* Location Permission & Setup Step Overlay */}
-      {showLocationPrompt && (
-        <View style={styles.locationOverlay}>
-          <View style={styles.promptCard}>
-            <View style={styles.promptIconWrapper}>
-              <MapPin size={32} color="#DC3545" />
+      {/* Screen 2: Location Permission (Matching UI Design Reference 2) */}
+      {showLocationScreen && (
+        <View style={[styles.permissionContainer, { paddingTop: insets.top + 40 }]}>
+          {/* Glowing Radar Circle with Location Pin */}
+          <View style={styles.radarOuterRing}>
+            <View style={styles.radarMiddleRing}>
+              <View style={styles.radarInnerCircle}>
+                <MapPin size={36} color="#38BDF8" fill="#38BDF8" />
+              </View>
             </View>
+          </View>
 
-            <Text style={styles.promptTitle}>Location-Aware Disaster Shield</Text>
-            <Text style={styles.promptSubtitle}>
-              VULNEX uses your district to monitor official IMD Cyclone, Flood, and Heatwave warnings
-              and connect vulnerable dependents to local relief shelters.
-            </Text>
+          {/* Title & Subtitle */}
+          <Text style={styles.permissionTitle}>Allow Location Access?</Text>
+          <Text style={styles.permissionSubtitle}>
+            VULNEX needs your location to provide real-time weather, disaster alerts and nearby emergency support.
+          </Text>
 
-            <View style={styles.detectedPill}>
-              <ShieldCheck size={16} color="#166534" />
-              <Text style={styles.detectedText}>
-                Active District: {location.district}, {location.state}
+          {/* 3 Benefit Cards */}
+          <View style={styles.benefitsList}>
+            <View style={styles.benefitCard}>
+              <View style={styles.benefitIconBox}>
+                <Radio size={20} color="#38BDF8" />
+              </View>
+              <Text style={styles.benefitText}>
+                Live weather & warnings from IMD for your area
               </Text>
             </View>
 
-            {/* GPS Enable Button */}
+            <View style={styles.benefitCard}>
+              <View style={styles.benefitIconBox}>
+                <Building2 size={20} color="#38BDF8" />
+              </View>
+              <Text style={styles.benefitText}>
+                Nearby shelters & emergency relief resources
+              </Text>
+            </View>
+
+            <View style={styles.benefitCard}>
+              <View style={styles.benefitIconBox}>
+                <Zap size={20} color="#38BDF8" />
+              </View>
+              <Text style={styles.benefitText}>
+                Faster emergency dispatch in case of a disaster
+              </Text>
+            </View>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.bottomActions}>
             <TouchableOpacity
-              style={styles.primaryButton}
-              onPress={handleGpsEnable}
+              style={styles.allowButton}
+              onPress={handleAllowLocation}
               disabled={isLoading}
               activeOpacity={0.85}
             >
               {isLoading ? (
-                <ActivityIndicator color={Colors.white} size="small" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Crosshair size={18} color={Colors.white} />
+                <Text style={styles.allowButtonText}>Allow Location Access</Text>
               )}
-              <Text style={styles.primaryButtonText}>
-                {isLoading ? 'Detecting GPS Satellite...' : 'Detect GPS Location Automatically'}
-              </Text>
             </TouchableOpacity>
 
-            {/* Manual District Picker Button */}
             <TouchableOpacity
-              style={styles.secondaryButton}
-              onPress={handleManualPick}
-              activeOpacity={0.8}
-            >
-              <MapPin size={16} color="#10243A" />
-              <Text style={styles.secondaryButtonText}>
-                Select Indian District Manually
-              </Text>
-            </TouchableOpacity>
-
-            {/* Direct Proceed */}
-            <TouchableOpacity
-              style={styles.skipLocationBtn}
-              onPress={proceedToApp}
+              style={styles.manualButton}
+              onPress={handleManualLocation}
               activeOpacity={0.7}
             >
-              <Text style={styles.skipLocationText}>
-                Continue with {location.district}
-              </Text>
-              <ArrowRight size={14} color="#64748B" />
+              <Text style={styles.manualButtonText}>Use Manual Location Instead</Text>
             </TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* Reusable Location Picker Modal */}
+      {/* Global Location Picker Modal */}
       <LocationPickerModal />
     </View>
   );
@@ -205,26 +220,29 @@ const { width, height } = Dimensions.get('window');
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#071320',
+    backgroundColor: '#0B131E',
+  },
+  videoWrapper: {
+    flex: 1,
+    backgroundColor: '#070D15',
     justifyContent: 'center',
     alignItems: 'center',
   },
   video: {
     width: width,
     height: height,
-    backgroundColor: '#071320',
   },
   skipButton: {
     position: 'absolute',
-    right: 18,
+    right: 20,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(16, 36, 58, 0.75)',
+    backgroundColor: 'rgba(17, 29, 45, 0.85)',
     paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingVertical: 6,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: '#1E2F46',
     gap: 4,
     zIndex: 20,
   },
@@ -232,111 +250,117 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 0.3,
   },
-  locationOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(7, 19, 32, 0.88)',
+  permissionContainer: {
+    flex: 1,
+    backgroundColor: '#0B131E',
+    paddingHorizontal: 24,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingBottom: 40,
+  },
+  radarOuterRing: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    backgroundColor: 'rgba(14, 165, 233, 0.08)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
-    zIndex: 30,
+    marginTop: 20,
   },
-  promptCard: {
-    width: '100%',
-    maxWidth: 380,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 24,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
-  },
-  promptIconWrapper: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: '#FEE2E2',
+  radarMiddleRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    backgroundColor: 'rgba(14, 165, 233, 0.15)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  promptTitle: {
-    fontSize: 18,
+  radarInnerCircle: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    backgroundColor: '#0D2744',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#0284C7',
+  },
+  permissionTitle: {
+    fontSize: 22,
     fontWeight: '800',
-    color: '#10243A',
+    color: '#FFFFFF',
     textAlign: 'center',
+    marginTop: 24,
   },
-  promptSubtitle: {
-    fontSize: 12,
-    color: '#64748B',
+  permissionSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
     textAlign: 'center',
+    lineHeight: 20,
     marginTop: 8,
+    paddingHorizontal: 10,
+  },
+  benefitsList: {
+    width: '100%',
+    gap: 12,
+    marginVertical: 24,
+  },
+  benefitCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111D2D',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    gap: 14,
+  },
+  benefitIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: 'rgba(56, 189, 248, 0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  benefitText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#E2E8F0',
+    fontWeight: '600',
     lineHeight: 18,
   },
-  detectedPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    marginVertical: 16,
-    borderWidth: 1,
-    borderColor: '#86EFAC',
-  },
-  detectedText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#166534',
-  },
-  primaryButton: {
+  bottomActions: {
     width: '100%',
-    backgroundColor: '#DC3545',
-    borderRadius: 14,
-    paddingVertical: 14,
-    flexDirection: 'row',
+    gap: 14,
+    alignItems: 'center',
+  },
+  allowButton: {
+    width: '100%',
+    backgroundColor: '#DC2626',
+    borderRadius: 16,
+    paddingVertical: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    marginBottom: 10,
+    shadowColor: '#DC2626',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  primaryButtonText: {
-    color: Colors.white,
-    fontSize: 13,
+  allowButtonText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '800',
+    letterSpacing: 0.3,
   },
-  secondaryButton: {
-    width: '100%',
-    backgroundColor: '#F1F5F9',
-    borderRadius: 14,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    marginBottom: 14,
+  manualButton: {
+    paddingVertical: 6,
   },
-  secondaryButtonText: {
-    color: '#10243A',
+  manualButtonText: {
+    color: '#94A3B8',
     fontSize: 13,
-    fontWeight: '700',
-  },
-  skipLocationBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingVertical: 4,
-  },
-  skipLocationText: {
-    fontSize: 12,
-    color: '#64748B',
     fontWeight: '600',
   },
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, CloudRain, LifeBuoy, UserPlus, ClipboardList, User } from 'lucide-react-native';
+import { Home, Cloud, Map, AlertCircle, User, LifeBuoy } from 'lucide-react-native';
 import { Colors } from '../../constants/Colors';
 
 export default function TabsLayout() {
@@ -8,12 +8,12 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: '#DC3545',
+        tabBarActiveTintColor: '#DC2626',
         tabBarInactiveTintColor: '#64748B',
         tabBarStyle: {
-          backgroundColor: '#10243A',
-          borderTopColor: '#173B5E',
-          height: 60,
+          backgroundColor: '#0D1724',
+          borderTopColor: '#1A2A3E',
+          height: 62,
           paddingBottom: 8,
           paddingTop: 6,
         },
@@ -34,39 +34,21 @@ export default function TabsLayout() {
         name="weather"
         options={{
           title: 'Weather',
-          tabBarIcon: ({ color, size }) => <CloudRain size={size || 20} color={color} />,
+          tabBarIcon: ({ color, size }) => <Cloud size={size || 20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: 'Map',
+          tabBarIcon: ({ color, size }) => <Map size={size || 20} color={color} />,
         }}
       />
       <Tabs.Screen
         name="emergency"
         options={{
-          title: 'SOS / Help',
-          tabBarIcon: ({ color, size }) => <LifeBuoy size={size || 22} color="#DC3545" />,
-          tabBarLabelStyle: {
-            fontSize: 10,
-            fontWeight: '800',
-            color: '#DC3545',
-          },
-        }}
-      />
-      <Tabs.Screen
-        name="register-vulnerable"
-        options={{
-          title: 'Register',
-          tabBarIcon: ({ color, size }) => <UserPlus size={size || 20} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="tracking"
-        options={{
-          title: 'Tracking',
-          tabBarIcon: ({ color, size }) => <ClipboardList size={size || 20} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="notifications"
-        options={{
-          href: null, // access through home header
+          title: 'SOS',
+          tabBarIcon: ({ color, size }) => <LifeBuoy size={size || 22} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -74,6 +56,30 @@ export default function TabsLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, size }) => <User size={size || 20} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="register-vulnerable"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="tracking"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="notifications"
+        options={{
+          href: null,
+        }}
+      />
+      <Tabs.Screen
+        name="alert-details"
+        options={{
+          href: null,
         }}
       />
     </Tabs>

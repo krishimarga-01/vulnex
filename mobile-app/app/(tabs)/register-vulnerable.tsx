@@ -8,17 +8,29 @@ import {
   ScrollView,
   Alert,
   Switch,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApi } from '../../services/mobileApi';
-import { Colors } from '../../constants/Colors';
 import {
   VulnerabilityCategory,
   MobilityStatus,
   VulnerablePersonRequest,
 } from '../../types';
-import { UserPlus, MapPin, HeartPulse, CheckSquare } from 'lucide-react-native';
+import {
+  User,
+  Heart,
+  Baby,
+  Accessibility,
+  HeartPulse,
+  MapPin,
+  Phone,
+  ShieldCheck,
+  ChevronRight,
+  ChevronLeft,
+  CheckCircle,
+} from 'lucide-react-native';
 import { useLocation } from '../../context/LocationContext';
 
 export default function RegisterVulnerableScreen() {
@@ -26,12 +38,15 @@ export default function RegisterVulnerableScreen() {
   const queryClient = useQueryClient();
   const { location } = useLocation();
 
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+
+  // Form State
   const [fullName, setFullName] = useState('');
   const [nationalId, setNationalId] = useState('');
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<'MALE' | 'FEMALE' | 'OTHER'>('FEMALE');
   const [category, setCategory] = useState<VulnerabilityCategory>('ELDERLY');
-  const [mobility, setMobility] = useState<MobilityStatus>('BEDRIDDEN');
+  const [mobility, setMobility] = useState<MobilityStatus>('ASSISTED');
   const [medicalConditions, setMedicalConditions] = useState('');
   const [assistanceRequirements, setAssistanceRequirements] = useState('');
   const [contactNumber, setContactNumber] = useState('');
@@ -42,8 +57,8 @@ export default function RegisterVulnerableScreen() {
   const [longitude, setLongitude] = useState(String(location.longitude));
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
-  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState('');
-  const [consentGiven, setConsentGiven] = useState(false);
+  const [emergencyContactRelationship, setEmergencyContactRelationship] = useState('Family');
+  const [consentGiven, setConsentGiven] = useState(true);
 
   const mutation = useMutation({
     mutationFn: (data: VulnerablePersonRequest) => mobileApi.registerVulnerablePerson(data),
@@ -51,263 +66,376 @@ export default function RegisterVulnerableScreen() {
       queryClient.invalidateQueries({ queryKey: ['vulnerable-persons-list'] });
       queryClient.invalidateQueries({ queryKey: ['mobile-vulnerable-my'] });
       Alert.alert(
-        'Registration Submitted',
-        `Successfully registered ${res.fullName}. The record has been transmitted to Municipal Disaster Management for prioritization.`,
-        [{ text: 'OK', onPress: () => router.push('/(tabs)') }]
+        'Vulnerability Record Registered',
+        `Successfully registered ${res.fullName} with District Disaster Management Authority (${location.district}). First responders will prioritize this profile in disaster alerts.`,
+        [{ text: 'View on Home', onPress: () => router.push('/(tabs)') }]
       );
     },
     onError: (err: any) => {
       Alert.alert(
-        'Submission Failed',
-        err.response?.data?.message || 'Could not register vulnerable profile.'
+        'Registration Failed',
+        err.response?.data?.message || 'Could not save vulnerable member profile.'
       );
     },
   });
 
-  const handleSubmit = () => {
-    if (!fullName || !nationalId || !age || !medicalConditions || !address || !emergencyContactPhone) {
-      Alert.alert('Required Fields Missing', 'Please fill in all required fields indicated by *.');
+  const handleNextFromStep1 = () => {
+    if (!fullName.trim()) {
+      Alert.alert('Full Name Required', 'Please enter the member’s full name.');
       return;
     }
+    if (!age.trim() || isNaN(Number(age))) {
+      Alert.alert('Valid Age Required', 'Please enter a valid age in years.');
+      return;
+    }
+    setStep(2);
+  };
 
+  const handleNextFromStep2 = () => {
+    if (!medicalConditions.trim()) {
+      Alert.alert('Medical Info Required', 'Please describe any known medical conditions or enter "None".');
+      return;
+    }
+    setStep(3);
+  };
+
+  const handleSubmit = () => {
+    if (!emergencyContactPhone.trim()) {
+      Alert.alert('Emergency Phone Required', 'Please provide a valid emergency contact phone number.');
+      return;
+    }
     if (!consentGiven) {
       Alert.alert(
         'Consent Required',
-        'You must grant emergency data sharing consent to allow disaster responders and ambulance teams to access location and medical information during extreme weather alerts.'
+        'Authorization is required so disaster relief forces (NDRF/SDRF) can locate this vulnerable individual.'
       );
       return;
     }
 
     mutation.mutate({
-      fullName,
-      nationalId,
+      fullName: fullName.trim(),
+      nationalId: nationalId.trim() || `GEN-${Date.now().toString().slice(-6)}`,
       age: Number(age),
       gender,
       vulnerabilityCategory: category,
       mobilityStatus: mobility,
-      medicalConditions,
-      assistanceRequirements: assistanceRequirements || 'General evacuation support',
-      contactNumber: contactNumber || emergencyContactPhone,
-      address,
-      latitude: parseFloat(latitude) || 13.0827,
-      longitude: parseFloat(longitude) || 80.2707,
-      emergencyContactName,
-      emergencyContactPhone,
-      emergencyContactRelationship: emergencyContactRelationship || 'Caregiver',
+      medicalConditions: medicalConditions.trim(),
+      assistanceRequirements: assistanceRequirements.trim() || 'Evacuation and life-support priority',
+      contactNumber: contactNumber.trim() || emergencyContactPhone.trim(),
+      address: address.trim(),
+      latitude: parseFloat(latitude) || location.latitude,
+      longitude: parseFloat(longitude) || location.longitude,
+      emergencyContactName: emergencyContactName.trim() || 'Primary Caregiver',
+      emergencyContactPhone: emergencyContactPhone.trim(),
+      emergencyContactRelationship: emergencyContactRelationship.trim() || 'Caregiver',
       consentGiven: true,
     });
   };
 
+  const categories: {
+    key: VulnerabilityCategory;
+    title: string;
+    subtitle: string;
+    icon: any;
+  }[] = [
+    { key: 'ELDERLY', title: 'Elderly Citizen', subtitle: 'Age 60+ / Senior Care', icon: User },
+    { key: 'CHILD', title: 'Infant / Child', subtitle: 'Age 0-12 / Pediatric Care', icon: Baby },
+    { key: 'PREGNANT', title: 'Pregnant Woman', subtitle: 'Maternal Care & Newborn', icon: Heart },
+    { key: 'DISABILITY', title: 'Person w/ Disability', subtitle: 'Physical or Sensory', icon: Accessibility },
+  ];
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      {/* Title */}
       <View style={styles.header}>
-        <UserPlus size={28} color="#DC3545" />
-        <Text style={styles.title}>Register Vulnerable Individual</Text>
-        <Text style={styles.subtitle}>
-          Ensure priority evacuation, air-conditioned shelter transport, and emergency oxygen for vulnerable family members.
+        <Text style={styles.headerTitle}>Register Vulnerable Member</Text>
+        <Text style={styles.headerSubtitle}>
+          Ensure elderly, pregnant, or medically dependent relatives receive prioritized NDRF/SDRF rescue.
         </Text>
       </View>
 
-      <View style={styles.formCard}>
-        {/* Full Name & National ID */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Full Legal Name *</Text>
+      {/* 3-Step Stepper (Screen 8) */}
+      <View style={styles.stepperContainer}>
+        {/* Step 1 */}
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, step >= 1 && styles.stepCircleActive]}>
+            <Text style={[styles.stepCircleText, step >= 1 && styles.stepCircleTextActive]}>1</Text>
+          </View>
+          <Text style={[styles.stepLabel, step >= 1 && styles.stepLabelActive]}>Details</Text>
+        </View>
+
+        <View style={[styles.stepLine, step >= 2 && styles.stepLineActive]} />
+
+        {/* Step 2 */}
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, step >= 2 && styles.stepCircleActive]}>
+            <Text style={[styles.stepCircleText, step >= 2 && styles.stepCircleTextActive]}>2</Text>
+          </View>
+          <Text style={[styles.stepLabel, step >= 2 && styles.stepLabelActive]}>Health</Text>
+        </View>
+
+        <View style={[styles.stepLine, step >= 3 && styles.stepLineActive]} />
+
+        {/* Step 3 */}
+        <View style={styles.stepItem}>
+          <View style={[styles.stepCircle, step === 3 && styles.stepCircleActive]}>
+            <Text style={[styles.stepCircleText, step === 3 && styles.stepCircleTextActive]}>3</Text>
+          </View>
+          <Text style={[styles.stepLabel, step === 3 && styles.stepLabelActive]}>Location</Text>
+        </View>
+      </View>
+
+      {/* STEP 1: PERSONAL DETAILS */}
+      {step === 1 && (
+        <View style={styles.stepCard}>
+          <Text style={styles.stepSectionTitle}>Select Vulnerability Category</Text>
+          <View style={styles.categoriesGrid}>
+            {categories.map((cat) => {
+              const IconComp = cat.icon;
+              const isSelected = category === cat.key;
+              return (
+                <TouchableOpacity
+                  key={cat.key}
+                  style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                  onPress={() => setCategory(cat.key)}
+                  activeOpacity={0.8}
+                >
+                  <View style={[styles.catIconCircle, isSelected && styles.catIconCircleSelected]}>
+                    <IconComp size={22} color={isSelected ? '#DC2626' : '#94A3B8'} />
+                  </View>
+                  <Text style={[styles.categoryTitle, isSelected && styles.categoryTitleSelected]}>
+                    {cat.title}
+                  </Text>
+                  <Text style={styles.categorySub}>{cat.subtitle}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <Text style={styles.inputLabel}>Full Legal Name *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="e.g. Eleanor Vance"
+            style={styles.textInput}
+            placeholder="e.g. Kamala Devi"
+            placeholderTextColor="#64748B"
             value={fullName}
             onChangeText={setFullName}
           />
-        </View>
 
-        <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>National / Govt ID *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="NAT-ID-1005"
-              value={nationalId}
-              onChangeText={setNationalId}
-            />
+          <View style={styles.rowInputs}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>Age (Years) *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="e.g. 74"
+                placeholderTextColor="#64748B"
+                keyboardType="numeric"
+                value={age}
+                onChangeText={setAge}
+              />
+            </View>
+            <View style={{ flex: 1.2 }}>
+              <Text style={styles.inputLabel}>Gender</Text>
+              <View style={styles.genderRow}>
+                {(['FEMALE', 'MALE', 'OTHER'] as const).map((g) => (
+                  <TouchableOpacity
+                    key={g}
+                    style={[styles.genderBtn, gender === g && styles.genderBtnActive]}
+                    onPress={() => setGender(g)}
+                  >
+                    <Text style={[styles.genderText, gender === g && styles.genderTextActive]}>
+                      {g === 'FEMALE' ? 'Female' : g === 'MALE' ? 'Male' : 'Other'}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
           </View>
-          <View style={[styles.inputGroup, { width: 90 }]}>
-            <Text style={styles.label}>Age (Years) *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="82"
-              value={age}
-              onChangeText={setAge}
-              keyboardType="number-pad"
-            />
-          </View>
-        </View>
 
-        {/* Vulnerability Category */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Vulnerability Category *</Text>
-          <View style={styles.optionGrid}>
+          <Text style={styles.inputLabel}>Aadhaar / National ID (Optional)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="XXXX-XXXX-XXXX"
+            placeholderTextColor="#64748B"
+            value={nationalId}
+            onChangeText={setNationalId}
+          />
+
+          <TouchableOpacity
+            style={styles.primaryBtn}
+            onPress={handleNextFromStep1}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.primaryBtnText}>Next: Health Info</Text>
+            <ChevronRight size={18} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* STEP 2: HEALTH & MOBILITY */}
+      {step === 2 && (
+        <View style={styles.stepCard}>
+          <Text style={styles.stepSectionTitle}>Mobility Level</Text>
+          <View style={styles.mobilityRow}>
             {(
               [
-                'ELDERLY',
-                'CHILD',
-                'DISABILITY',
-                'PREGNANT',
-                'MEDICAL_ASSISTANCE',
-              ] as VulnerabilityCategory[]
-            ).map((cat) => (
+                { key: 'BEDRIDDEN', label: 'Bedridden', sub: 'Non-ambulatory' },
+                { key: 'WHEELCHAIR', label: 'Wheelchair', sub: 'Requires ramp' },
+                { key: 'ASSISTED', label: 'Assisted', sub: 'Walks with aid' },
+                { key: 'INDEPENDENT', label: 'Independent', sub: 'Slow walking' },
+              ] as const
+            ).map((m) => (
               <TouchableOpacity
-                key={cat}
-                style={[styles.optionPill, category === cat && styles.optionPillActive]}
-                onPress={() => setCategory(cat)}
+                key={m.key}
+                style={[styles.mobilityCard, mobility === m.key && styles.mobilityCardActive]}
+                onPress={() => setMobility(m.key as MobilityStatus)}
               >
-                <Text style={[styles.optionText, category === cat && styles.optionTextActive]}>
-                  {cat.replace('_', ' ')}
+                <Text style={[styles.mobilityLabel, mobility === m.key && styles.mobilityLabelActive]}>
+                  {m.label}
                 </Text>
+                <Text style={styles.mobilitySub}>{m.sub}</Text>
               </TouchableOpacity>
             ))}
           </View>
-        </View>
 
-        {/* Mobility Status */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Mobility Status *</Text>
-          <View style={styles.optionGrid}>
-            {(['INDEPENDENT', 'ASSISTED', 'WHEELCHAIR', 'BEDRIDDEN'] as MobilityStatus[]).map(
-              (m) => (
-                <TouchableOpacity
-                  key={m}
-                  style={[styles.optionPill, mobility === m && styles.optionPillActive]}
-                  onPress={() => setMobility(m)}
-                >
-                  <Text style={[styles.optionText, mobility === m && styles.optionTextActive]}>
-                    {m}
-                  </Text>
-                </TouchableOpacity>
-              )
-            )}
-          </View>
-        </View>
-
-        {/* Medical Conditions */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Medical Diagnosis & Life-Support Dependency *</Text>
+          <Text style={styles.inputLabel}>Medical Conditions & Critical Needs *</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="e.g. Supplemental oxygen concentrator dependency, congestive heart failure, severe asthma..."
+            style={[styles.textInput, styles.textArea]}
+            placeholder="e.g. Oxygen concentrator dependent (10 L/min), Hypertension, Dialysis 3x weekly on Tuesdays..."
+            placeholderTextColor="#64748B"
+            multiline
+            numberOfLines={4}
             value={medicalConditions}
             onChangeText={setMedicalConditions}
-            multiline
-            numberOfLines={3}
           />
-        </View>
 
-        {/* Assistance Requirements */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Specific Assistance Requirements</Text>
+          <Text style={styles.inputLabel}>Specific Evacuation Assistance</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
-            placeholder="e.g. Stretcher evacuation van, uninterrupted power supply, wheelchair ramp..."
+            style={[styles.textInput, { height: 46 }]}
+            placeholder="e.g. Stretcher evacuation required, ground floor window access"
+            placeholderTextColor="#64748B"
             value={assistanceRequirements}
             onChangeText={setAssistanceRequirements}
-            multiline
-            numberOfLines={2}
           />
-        </View>
 
-        {/* Residential Address */}
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Residential Address *</Text>
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => setStep(1)}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={18} color="#94A3B8" />
+              <Text style={styles.secondaryBtnText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { flex: 1 }]}
+              onPress={handleNextFromStep2}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.primaryBtnText}>Next: Location & Contact</Text>
+              <ChevronRight size={18} color="#FFFFFF" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* STEP 3: LOCATION & CONTACT */}
+      {step === 3 && (
+        <View style={styles.stepCard}>
+          <Text style={styles.stepSectionTitle}>Current Geographic Address</Text>
+
+          <View style={styles.locationSummaryBox}>
+            <MapPin size={16} color="#DC2626" />
+            <Text style={styles.locationSummaryText}>
+              Lat: {Number(latitude).toFixed(4)}, Lon: {Number(longitude).toFixed(4)} ({location.district})
+            </Text>
+          </View>
+
+          <Text style={styles.inputLabel}>Residential Address *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="House/Apt No., Street, Sector, Landmark"
+            style={[styles.textInput, styles.textArea]}
+            placeholder="Door No, Street Name, Landmark..."
+            placeholderTextColor="#64748B"
+            multiline
+            numberOfLines={3}
             value={address}
             onChangeText={setAddress}
           />
-        </View>
 
-        {/* GPS Coordinates */}
-        <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>GPS Latitude</Text>
-            <TextInput
-              style={styles.input}
-              value={latitude}
-              onChangeText={setLatitude}
-              keyboardType="numeric"
-            />
-          </View>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>GPS Longitude</Text>
-            <TextInput
-              style={styles.input}
-              value={longitude}
-              onChangeText={setLongitude}
-              keyboardType="numeric"
-            />
-          </View>
-        </View>
-
-        {/* Emergency Contact */}
-        <View style={styles.sectionDivider}>
-          <Text style={styles.sectionHeader}>Emergency Contact & Caregiver</Text>
-        </View>
-
-        <View style={styles.inputGroup}>
-          <Text style={styles.label}>Contact Name *</Text>
+          <Text style={styles.inputLabel}>Primary Emergency Contact Person *</Text>
           <TextInput
-            style={styles.input}
-            placeholder="e.g. Mary Johnson"
+            style={styles.textInput}
+            placeholder="e.g. Ramesh Devi (Son / Caregiver)"
+            placeholderTextColor="#64748B"
             value={emergencyContactName}
             onChangeText={setEmergencyContactName}
           />
-        </View>
 
-        <View style={styles.row}>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Phone Number *</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="+1-555-0102"
-              value={emergencyContactPhone}
-              onChangeText={setEmergencyContactPhone}
-              keyboardType="phone-pad"
-            />
+          <View style={styles.rowInputs}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>Emergency Phone *</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="+91 98765 43210"
+                placeholderTextColor="#64748B"
+                keyboardType="phone-pad"
+                value={emergencyContactPhone}
+                onChangeText={setEmergencyContactPhone}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.inputLabel}>Relationship</Text>
+              <TextInput
+                style={styles.textInput}
+                placeholder="Caregiver"
+                placeholderTextColor="#64748B"
+                value={emergencyContactRelationship}
+                onChangeText={setEmergencyContactRelationship}
+              />
+            </View>
           </View>
-          <View style={[styles.inputGroup, { flex: 1 }]}>
-            <Text style={styles.label}>Relationship</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Daughter / Guardian"
-              value={emergencyContactRelationship}
-              onChangeText={setEmergencyContactRelationship}
+
+          {/* Consent Switch */}
+          <View style={styles.consentBox}>
+            <Switch
+              value={consentGiven}
+              onValueChange={setConsentGiven}
+              trackColor={{ false: '#334155', true: '#DC2626' }}
+              thumbColor={consentGiven ? '#FFFFFF' : '#94A3B8'}
             />
+            <Text style={styles.consentText}>
+              I authorize Municipal Disaster Operations and Rescue Forces (NDRF/SDRF) to access this profile during natural disaster alerts.
+            </Text>
+          </View>
+
+          <View style={styles.buttonRow}>
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={() => setStep(2)}
+              activeOpacity={0.8}
+            >
+              <ChevronLeft size={18} color="#94A3B8" />
+              <Text style={styles.secondaryBtnText}>Back</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.primaryBtn, { flex: 1 }, mutation.isPending && { opacity: 0.6 }]}
+              onPress={handleSubmit}
+              disabled={mutation.isPending}
+              activeOpacity={0.85}
+            >
+              {mutation.isPending ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <>
+                  <CheckCircle size={18} color="#FFFFFF" />
+                  <Text style={styles.primaryBtnText}>Submit Registration</Text>
+                </>
+              )}
+            </TouchableOpacity>
           </View>
         </View>
-
-        {/* Consent Checkbox */}
-        <View style={styles.consentRow}>
-          <Switch
-            value={consentGiven}
-            onValueChange={setConsentGiven}
-            trackColor={{ false: '#CBD5E1', true: '#DC3545' }}
-            thumbColor={Colors.white}
-          />
-          <Text style={styles.consentText}>
-            I confirm consent to securely transmit this vulnerable individual's medical and geospatial profile to authorized Municipal Disaster Authorities for life-saving emergency intervention.
-          </Text>
-        </View>
-
-        {/* Submit Button */}
-        <TouchableOpacity
-          style={styles.submitButton}
-          onPress={handleSubmit}
-          disabled={mutation.isPending}
-        >
-          <Text style={styles.submitButtonText}>
-            {mutation.isPending ? 'Transmitting to Authorities...' : 'Register for Disaster Priority'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      )}
     </ScrollView>
   );
 }
@@ -315,137 +443,285 @@ export default function RegisterVulnerableScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F4F7FA',
+    backgroundColor: '#0B131E',
   },
   content: {
     padding: 16,
-    paddingTop: 48,
     paddingBottom: 40,
   },
   header: {
-    alignItems: 'center',
     marginBottom: 20,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#F8FAFC',
+    marginBottom: 6,
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#94A3B8',
+    lineHeight: 18,
+  },
+  stepperContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 24,
     paddingHorizontal: 12,
   },
-  title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#10243A',
-    marginTop: 6,
-    textAlign: 'center',
+  stepItem: {
+    alignItems: 'center',
+    gap: 6,
   },
-  subtitle: {
+  stepCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#1E2F46',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  stepCircleActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
+  },
+  stepCircleText: {
+    color: '#94A3B8',
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  stepCircleTextActive: {
+    color: '#FFFFFF',
+  },
+  stepLabel: {
     fontSize: 11,
+    fontWeight: '600',
     color: '#64748B',
-    textAlign: 'center',
-    marginTop: 4,
-    lineHeight: 16,
   },
-  formCard: {
-    backgroundColor: '#FFFFFF',
+  stepLabelActive: {
+    color: '#F8FAFC',
+    fontWeight: '700',
+  },
+  stepLine: {
+    flex: 1,
+    height: 2,
+    backgroundColor: '#1E2F46',
+    marginHorizontal: 8,
+    marginTop: -16,
+  },
+  stepLineActive: {
+    backgroundColor: '#DC2626',
+  },
+  stepCard: {
+    backgroundColor: '#111D2D',
     borderRadius: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    borderColor: '#1E2F46',
   },
-  inputGroup: {
-    marginBottom: 14,
-  },
-  label: {
-    fontSize: 11,
+  stepSectionTitle: {
+    fontSize: 14,
     fontWeight: '700',
-    color: '#10243A',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-    marginBottom: 6,
+    color: '#F8FAFC',
+    marginBottom: 14,
+    letterSpacing: 0.3,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#CBD5E1',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 13,
-    backgroundColor: '#F8FAFC',
-    color: '#10243A',
-  },
-  textArea: {
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  row: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  optionGrid: {
+  categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
+    gap: 10,
+    marginBottom: 20,
   },
-  optionPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
+  categoryCard: {
+    width: '48.5%',
+    backgroundColor: '#0B131E',
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+  },
+  categoryCardSelected: {
+    borderColor: '#DC2626',
+    backgroundColor: '#1E1622',
+  },
+  catIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#111D2D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  catIconCircleSelected: {
+    backgroundColor: '#DC262622',
+  },
+  categoryTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#E2E8F0',
+    marginBottom: 2,
+  },
+  categoryTitleSelected: {
+    color: '#FFFFFF',
+  },
+  categorySub: {
+    fontSize: 11,
+    color: '#64748B',
+  },
+  inputLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 6,
+    marginTop: 12,
+  },
+  textInput: {
+    backgroundColor: '#0B131E',
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: 'top',
+  },
+  rowInputs: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  genderRow: {
+    flexDirection: 'row',
+    gap: 4,
+    marginTop: 1,
+  },
+  genderBtn: {
+    flex: 1,
+    backgroundColor: '#0B131E',
+    paddingVertical: 11,
+    alignItems: 'center',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#CBD5E1',
-    backgroundColor: '#F8FAFC',
+    borderColor: '#1E2F46',
   },
-  optionPillActive: {
-    backgroundColor: '#10243A',
-    borderColor: '#10243A',
+  genderBtnActive: {
+    backgroundColor: '#DC2626',
+    borderColor: '#DC2626',
   },
-  optionText: {
+  genderText: {
     fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  genderTextActive: {
+    color: '#FFFFFF',
     fontWeight: '700',
-    color: '#475569',
   },
-  optionTextActive: {
-    color: Colors.white,
-  },
-  sectionDivider: {
-    marginTop: 10,
-    marginBottom: 12,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  sectionHeader: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#173B5E',
-    textTransform: 'uppercase',
-  },
-  consentRow: {
+  primaryBtn: {
+    backgroundColor: '#DC2626',
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 16,
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 12,
+    marginTop: 24,
+  },
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    backgroundColor: '#1E2F46',
+    marginTop: 24,
+  },
+  secondaryBtnText: {
+    color: '#CBD5E1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  buttonRow: {
+    flexDirection: 'row',
     gap: 10,
+    alignItems: 'center',
+  },
+  mobilityRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 16,
+  },
+  mobilityCard: {
+    width: '48.5%',
+    backgroundColor: '#0B131E',
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+  },
+  mobilityCardActive: {
+    borderColor: '#DC2626',
+    backgroundColor: '#1E1622',
+  },
+  mobilityLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
+  mobilityLabelActive: {
+    color: '#FFFFFF',
+  },
+  mobilitySub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  locationSummaryBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#0B131E',
+    padding: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    marginBottom: 8,
+  },
+  locationSummaryText: {
+    fontSize: 12,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  consentBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: '#0B131E',
+    padding: 14,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    marginTop: 16,
   },
   consentText: {
     flex: 1,
     fontSize: 11,
-    color: '#475569',
+    color: '#94A3B8',
     lineHeight: 16,
-  },
-  submitButton: {
-    backgroundColor: '#DC3545',
-    borderRadius: 10,
-    paddingVertical: 14,
-    alignItems: 'center',
-    shadowColor: '#DC3545',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  submitButtonText: {
-    color: Colors.white,
-    fontSize: 14,
-    fontWeight: '800',
   },
 });
