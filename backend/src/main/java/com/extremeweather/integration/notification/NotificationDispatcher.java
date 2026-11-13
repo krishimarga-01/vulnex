@@ -39,38 +39,42 @@ public class NotificationDispatcher {
 
         notification = notificationRepository.save(notification);
 
-        // 2. Dispatch Push Notification via FCM if token present
-        if (recipient.getFcmToken() != null && !recipient.getFcmToken().isBlank()) {
-            FcmNotificationProvider.ProviderDeliveryResult pushResult =
-                    fcmProvider.sendPushNotification(recipient.getFcmToken(), title, message);
+        try {
+            // 2. Dispatch Push Notification via FCM if token present
+            if (recipient.getFcmToken() != null && !recipient.getFcmToken().isBlank()) {
+                FcmNotificationProvider.ProviderDeliveryResult pushResult =
+                        fcmProvider.sendPushNotification(recipient.getFcmToken(), title, message);
 
-            NotificationDeliveryLog pushLog = NotificationDeliveryLog.builder()
-                    .notification(notification)
-                    .channel("PUSH")
-                    .destination(recipient.getFcmToken())
-                    .deliveryStatus(pushResult.status())
-                    .providerMessageId(pushResult.messageId())
-                    .providerResponse(pushResult.details())
-                    .sentAt(Instant.now())
-                    .build();
-            deliveryLogRepository.save(pushLog);
-        }
+                NotificationDeliveryLog pushLog = NotificationDeliveryLog.builder()
+                        .notification(notification)
+                        .channel("PUSH")
+                        .destination(recipient.getFcmToken())
+                        .deliveryStatus(pushResult.status())
+                        .providerMessageId(pushResult.messageId())
+                        .providerResponse(pushResult.details())
+                        .sentAt(Instant.now())
+                        .build();
+                try { deliveryLogRepository.save(pushLog); } catch (Exception ignored) {}
+            }
 
-        // 3. Dispatch SMS Notification if phone number present
-        if (recipient.getPhoneNumber() != null && !recipient.getPhoneNumber().isBlank()) {
-            SmsNotificationProvider.ProviderDeliveryResult smsResult =
-                    smsProvider.sendSms(recipient.getPhoneNumber(), message);
+            // 3. Dispatch SMS Notification if phone number present
+            if (recipient.getPhoneNumber() != null && !recipient.getPhoneNumber().isBlank()) {
+                SmsNotificationProvider.ProviderDeliveryResult smsResult =
+                        smsProvider.sendSms(recipient.getPhoneNumber(), message);
 
-            NotificationDeliveryLog smsLog = NotificationDeliveryLog.builder()
-                    .notification(notification)
-                    .channel("SMS")
-                    .destination(recipient.getPhoneNumber())
-                    .deliveryStatus(smsResult.status())
-                    .providerMessageId(smsResult.messageId())
-                    .providerResponse(smsResult.details())
-                    .sentAt(Instant.now())
-                    .build();
-            deliveryLogRepository.save(smsLog);
+                NotificationDeliveryLog smsLog = NotificationDeliveryLog.builder()
+                        .notification(notification)
+                        .channel("SMS")
+                        .destination(recipient.getPhoneNumber())
+                        .deliveryStatus(smsResult.status())
+                        .providerMessageId(smsResult.messageId())
+                        .providerResponse(smsResult.details())
+                        .sentAt(Instant.now())
+                        .build();
+                try { deliveryLogRepository.save(smsLog); } catch (Exception ignored) {}
+            }
+        } catch (Exception ex) {
+            log.warn("Notification dispatch exception: {}", ex.getMessage());
         }
 
         log.info("Dispatched {} alert notification to user {} ({})",
