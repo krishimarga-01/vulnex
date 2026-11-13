@@ -43,7 +43,7 @@ public class GeographyService {
         return regions.stream().map(region -> {
             // Count vulnerable people within 15km of region center
             List<VulnerablePerson> nearbyPersons = allPersons.stream()
-                    .filter(p -> SpatialUtils.isWithinRadius(
+                    .filter(p -> p.getLatitude() != null && p.getLongitude() != null && SpatialUtils.isWithinRadius(
                             p.getLatitude(), p.getLongitude(),
                             region.getCenterLatitude(), region.getCenterLongitude(), 15.0))
                     .toList();
