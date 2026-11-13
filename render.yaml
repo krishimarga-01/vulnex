@@ -74,12 +74,3 @@ services:
           type: web
           name: vulnex-backend
           property: host
-
-databases:
-  # PostgreSQL 16 + PostGIS
-  - name: vulnex-postgres
-    plan: free
-    region: oregon
-    databaseName: extreme_weather_db
-    user: vulnex_user
-    postgresMajorVersion: "16"
