@@ -1,0 +1,40 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: false
+
+app:
+  security:
+    jwt:
+      secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      expiration-ms: 3600000
+      issuer: extreme-weather-test
+  weather:
+    provider: mock
+    mock-fallback: true
+  notification:
+    fcm:
+      mock-mode: true
+    sms:
+      mock-mode: true
+  risk:
+    scoring:
+      high-risk-threshold: 75.0
+      medium-risk-threshold: 45.0
+      auto-reassess-on-alert: true
+
+logging:
+  level:
+    root: INFO
+    com.extremeweather: DEBUG

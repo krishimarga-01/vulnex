@@ -1,0 +1,51 @@
+﻿
+Method Path                                                              Summary                                                                                  Tags                                 
+------ ----                                                              -------                                                                                  ----                                 
+POST   /api/v1/auth/login                                                Authenticate user and receive JWT Bearer token                                           Authentication & User Management     
+GET    /api/v1/auth/me                                                   Get currently authenticated user profile                                                 Authentication & User Management     
+POST   /api/v1/auth/register                                             Register a new user (Citizen, Caregiver, Volunteer, Authority, Admin)                    Authentication & User Management     
+GET    /api/v1/authority/dashboard/alerts/active                         Retrieve all currently active extreme weather warnings and red alerts                    Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/alerts/history                        Retrieve weather alert history                                                           Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/cases                                 Query and paginate emergency response requests with filter criteria                      Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/cases/critical                        Retrieve critical high-priority emergency cases                                          Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/cases/pending                         Retrieve unassigned pending SOS calls requiring triage                                   Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/risk-map/regions                      Get geographical risk distribution across districts and wards                            Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/risk-map/vulnerable-geojson           Get GeoJSON FeatureCollection of vulnerable population coordinates for GIS mapping       Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/summary                               Get high-level disaster management situational summary metrics                           Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/vulnerable-people                     Search and filter vulnerable population with full authority unmasked access              Authority Web Dashboard APIs         
+GET    /api/v1/authority/dashboard/vulnerable-people/immediate-attention Retrieve high-risk, oxygen-dependent, or bedridden individuals requiring priority checks Authority Web Dashboard APIs         
+POST   /api/v1/emergency-cases                                           Submit a new emergency assistance request                                                Emergency Case & Dispatch Management 
+GET    /api/v1/emergency-cases/{id}                                      Retrieve emergency case details by ID                                                    Emergency Case & Dispatch Management 
+POST   /api/v1/emergency-cases/{id}/assign                               Assign a dedicated response team to an emergency case                                    Emergency Case & Dispatch Management 
+PATCH  /api/v1/emergency-cases/{id}/status                               Update emergency case status (VERIFIED, IN_PROGRESS, RESOLVED, CLOSED)                   Emergency Case & Dispatch Management 
+GET    /api/v1/emergency-cases/high-priority                             List critical high-priority cases                                                        Emergency Case & Dispatch Management 
+GET    /api/v1/emergency-cases/pending                                   List all unassigned pending emergency cases                                              Emergency Case & Dispatch Management 
+GET    /api/v1/emergency-cases/response-teams                            List available emergency response teams                                                  Emergency Case & Dispatch Management 
+GET    /api/v1/emergency-cases/search                                    Search emergency cases by status, priority, and keyword                                  Emergency Case & Dispatch Management 
+GET    /api/v1/geography/regions                                         List all administrative geographical regions (districts, municipalities, wards)          Geographical Risk & PostGIS Mapping  
+GET    /api/v1/geography/risk-summary                                    Get geographical risk summaries with dynamic risk levels (RED, ORANGE, GREEN)            Geographical Risk & PostGIS Mapping  
+GET    /api/v1/geography/vulnerable-geojson                              Export vulnerable population locations as standard GeoJSON FeatureCollection             Geographical Risk & PostGIS Mapping  
+POST   /api/v1/mobile/emergency-cases                                    Submit an emergency assistance request / SOS from the mobile app                         Mobile Application APIs              
+GET    /api/v1/mobile/emergency-cases/my                                 Track status of emergency requests submitted by current user                             Mobile Application APIs              
+POST   /api/v1/mobile/fcm-token                                          Register or refresh device Firebase Cloud Messaging (FCM) push token                     Mobile Application APIs              
+GET    /api/v1/mobile/helplines                                          Retrieve verified national and district emergency helplines                              Mobile Application APIs              
+POST   /api/v1/mobile/vulnerable-persons                                 Register a vulnerable family member or patient from the mobile app                       Mobile Application APIs              
+GET    /api/v1/mobile/vulnerable-persons/my                              Get all vulnerable persons registered by or linked to the current mobile user            Mobile Application APIs              
+GET    /api/v1/mobile/weather-alerts/nearby                              Get active extreme weather alerts relevant to the user's current GPS location            Mobile Application APIs              
+POST   /api/v1/risk/assess/{vulnerablePersonId}                          Calculate and explain composite vulnerability risk score for a person                    Vulnerability Risk Assessment Engine 
+GET    /api/v1/risk/rules                                                View current active scoring rules and their assigned weights                             Vulnerability Risk Assessment Engine 
+POST   /api/v1/risk/rules                                                Create or update transparent scoring rules and weight parameters (Admin only)            Vulnerability Risk Assessment Engine 
+POST   /api/v1/vulnerable-persons                                        Register a new vulnerable person                                                         Vulnerable Population Management     
+GET    /api/v1/vulnerable-persons/{id}                                   Get detailed vulnerable person profile (PII masked for non-authorities)                  Vulnerable Population Management     
+PUT    /api/v1/vulnerable-persons/{id}                                   Update vulnerable person profile and medical requirements                                Vulnerable Population Management     
+GET    /api/v1/vulnerable-persons/immediate-assistance                   Retrieve persons requiring immediate emergency attention                                 Vulnerable Population Management     
+GET    /api/v1/vulnerable-persons/radius                                 Find vulnerable persons within radius (km) of geographical coordinates                   Vulnerable Population Management     
+GET    /api/v1/vulnerable-persons/search                                 Search and filter vulnerable individuals by category, risk level, or text                Vulnerable Population Management     
+GET    /api/v1/weather/alerts                                            Get weather alert historical archive                                                     Weather Monitoring & Extreme Warnings
+POST   /api/v1/weather/alerts                                            Publish an official weather warning (Red/Orange alert, Cyclone, Flood, Heatwave)         Weather Monitoring & Extreme Warnings
+PATCH  /api/v1/weather/alerts/{id}/deactivate                            Deactivate / expire an existing weather warning                                          Weather Monitoring & Extreme Warnings
+GET    /api/v1/weather/alerts/active                                     Get list of all active weather warnings                                                  Weather Monitoring & Extreme Warnings
+GET    /api/v1/weather/observations/region/{regionId}                    Query or trigger live weather observation for a geographical region                      Weather Monitoring & Extreme Warnings
+
+
+

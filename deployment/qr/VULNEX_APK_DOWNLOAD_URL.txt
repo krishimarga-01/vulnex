@@ -1,0 +1,5 @@
+Direct APK Download URL:
+https://expo.dev/artifacts/eas/hDAqoXgNJ7FIOVJBxJdpXsHoOxh9FuumcOxcfQMNp7U.apk
+
+Public Expo Installation & Build Page:
+https://expo.dev/accounts/krishimarga01/projects/vulnex/builds/d456f720-b092-4e28-ae9d-174d54488c46

@@ -1,0 +1,34 @@
+# Target build directories
+**/target/
+**/dist/
+**/build/
+.gradle/
+build/
+*.apk
+
+# Node dependencies
+**/node_modules/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment and sensitive keys
+.env
+.env.local
+.env.*.local
+*.log
+*.pem
+*.key
+*.cert
+*.jks
+**/backups/
+*_backup.sql
+fix_passwords.sql
+
+# IDE & OS
+.idea/
+*.iml
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: extreme_weather_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-extreme_weather_db}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_secret_2026}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d/migrations:ro
+      - ./seeds:/docker-entrypoint-initdb.d/seeds:ro
+      - ./scripts/init-db.sh:/docker-entrypoint-initdb.d/00_init-db.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-extreme_weather_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - disaster_network
+
+  flyway:
+    image: flyway/flyway:10-alpine
+    container_name: extreme_weather_flyway
+    depends_on:
+      db:
+        condition: service_healthy
+    command: -connectRetries=60 migrate
+    volumes:
+      - ./migrations:/flyway/sql:ro
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-extreme_weather_db}
+      FLYWAY_USER: ${POSTGRES_USER:-postgres}
+      FLYWAY_PASSWORD: ${POSTGRES_PASSWORD:-postgres_dev_secret_2026}
+      FLYWAY_BASELINE_ON_MIGRATE: "true"
+    networks:
+      - disaster_network
+    profiles:
+      - migration-runner
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  disaster_network:
+    driver: bridge

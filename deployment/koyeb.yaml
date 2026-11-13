@@ -1,0 +1,28 @@
+# Koyeb Free Tier Micro-Service Specification
+app: vulnex
+
+services:
+  - name: vulnex-api
+    git:
+      repository: github.com/krishimarga01/vulnex
+      branch: main
+      workdir: backend
+    build:
+      type: dockerfile
+      dockerfile: Dockerfile
+    instance_type: free
+    regions:
+      - fra
+    ports:
+      - port: 8080
+        protocol: http
+    routes:
+      - path: /
+        port: 8080
+    env:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: validate
+      - key: APP_JWT_EXPIRATION_MS
+        value: "86400000"
