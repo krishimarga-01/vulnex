@@ -19,10 +19,12 @@ import {
   VulnerablePersonRequest,
 } from '../../types';
 import { UserPlus, MapPin, HeartPulse, CheckSquare } from 'lucide-react-native';
+import { useLocation } from '../../context/LocationContext';
 
 export default function RegisterVulnerableScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { location } = useLocation();
 
   const [fullName, setFullName] = useState('');
   const [nationalId, setNationalId] = useState('');
@@ -33,9 +35,11 @@ export default function RegisterVulnerableScreen() {
   const [medicalConditions, setMedicalConditions] = useState('');
   const [assistanceRequirements, setAssistanceRequirements] = useState('');
   const [contactNumber, setContactNumber] = useState('');
-  const [address, setAddress] = useState('');
-  const [latitude, setLatitude] = useState('13.0830');
-  const [longitude, setLongitude] = useState('80.2710');
+  const [address, setAddress] = useState(
+    `${location.locality}, ${location.district}, ${location.state} - PIN ${location.pincode}`
+  );
+  const [latitude, setLatitude] = useState(String(location.latitude));
+  const [longitude, setLongitude] = useState(String(location.longitude));
   const [emergencyContactName, setEmergencyContactName] = useState('');
   const [emergencyContactPhone, setEmergencyContactPhone] = useState('');
   const [emergencyContactRelationship, setEmergencyContactRelationship] = useState('');

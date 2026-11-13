@@ -333,3 +333,116 @@ export interface Helpline {
   description: string;
   is24x7: boolean;
 }
+
+export interface LocationInfo {
+  state: string;
+  district: string;
+  locality?: string;
+  pincode?: string;
+  latitude: number;
+  longitude: number;
+  isGpsDetected?: boolean;
+}
+
+export interface LiveWeatherDetail {
+  temperature: number;
+  apparentTemperature: number;
+  humidity: number;
+  precipitationMm: number;
+  windSpeedKmh: number;
+  windDirectionDeg: number;
+  surfacePressureHpa: number;
+  weatherCondition: string;
+  uvIndex?: string;
+  isLive: boolean;
+  source: string;
+  observationTime: string;
+  lastUpdated: string;
+  status: 'LIVE' | 'CACHED' | 'UNAVAILABLE';
+}
+
+export interface AirQualityDetail {
+  aqi: number;
+  category: 'Good' | 'Satisfactory' | 'Moderate' | 'Poor' | 'Very Poor' | 'Severe';
+  categoryColor: string;
+  pm25: number;
+  pm10: number;
+  source: string;
+  cpcbClassificationNotice: string;
+  status: 'LIVE' | 'CACHED' | 'UNAVAILABLE';
+}
+
+export interface ForecastDay {
+  dayOfWeek: string;
+  dateStr: string;
+  minTemp: number;
+  maxTemp: number;
+  rainProbability: number;
+  condition: string;
+}
+
+export interface ImdDistrictAlert {
+  externalSourceId: string;
+  state: string;
+  district: string;
+  warningType: string;
+  imdColorCode: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN';
+  severityLevel: string;
+  headline: string;
+  description: string;
+  safetyInstructions: string;
+  validFrom: string;
+  validUntil: string;
+  publishedAt: string;
+  sourceUrl?: string;
+  status: string;
+  affectedVulnerableCount?: number;
+  affectedCategories?: string[];
+}
+
+export interface ShelterItem {
+  shelterId: string;
+  shelterCode: string;
+  shelterName: string;
+  shelterType: string;
+  district: string;
+  taluk?: string;
+  address: string;
+  latitude: number;
+  longitude: number;
+  contactPersonName?: string;
+  contactPhone?: string;
+  isAccessibleDisabled: boolean;
+  hasMedicalFacility: boolean;
+  hasBackupPower: boolean;
+  status: string;
+  distanceKm?: number;
+}
+
+export interface LiveDisasterIntelligence {
+  location: LocationInfo;
+  weather: LiveWeatherDetail;
+  airQuality: AirQualityDetail;
+  districtAlert: ImdDistrictAlert;
+  forecast: ForecastDay[];
+  nearbyShelters: ShelterItem[];
+  officialHelplines: { name: string; number: string; category: string }[];
+  systemAttribution: string;
+  dataIntegrityStatus: string;
+}
+
+export interface IndiaDisasterMapRegion {
+  id: string;
+  state: string;
+  district: string;
+  regionName: string;
+  latitude: number;
+  longitude: number;
+  alertLevel: 'RED' | 'ORANGE' | 'YELLOW' | 'GREEN';
+  hazardType: string;
+  headline: string;
+  advisory: string;
+  affectedVulnerableCount: number;
+  affectedCategories: string[];
+  source: string;
+}

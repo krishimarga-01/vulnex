@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,13 @@ import {
   TextInput,
   Alert,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApi } from '../../services/mobileApi';
 import { Colors } from '../../constants/Colors';
 import { EmergencyCategory, EmergencyPriority, EmergencyCaseRequest } from '../../types';
+import { useLocation } from '../../context/LocationContext';
 import {
   LifeBuoy,
   HeartPulse,
@@ -24,6 +26,7 @@ import {
   Send,
   Phone,
   ShieldCheck,
+  Crosshair,
 } from 'lucide-react-native';
 
 const CATEGORIES: {
@@ -43,13 +46,23 @@ const CATEGORIES: {
 export default function EmergencyScreen() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const { location } = useLocation();
 
   const [selectedCategory, setSelectedCategory] = useState<EmergencyCategory>('MEDICAL_ASSISTANCE');
   const [description, setDescription] = useState('');
-  const [address, setAddress] = useState('12 Marina Beach Road, Coastal Sector 4');
-  const [latitude, setLatitude] = useState('13.0830');
-  const [longitude, setLongitude] = useState('80.2710');
+  const [address, setAddress] = useState(
+    `${location.locality}, ${location.district}, ${location.state} - PIN ${location.pincode}`
+  );
+  const [latitude, setLatitude] = useState(String(location.latitude));
+  const [longitude, setLongitude] = useState(String(location.longitude));
   const [lastSubmittedCase, setLastSubmittedCase] = useState<string | null>(null);
+
+  // Sync if location changes
+  useEffect(() => {
+    setAddress(`${location.locality}, ${location.district}, ${location.state} - PIN ${location.pincode}`);
+    setLatitude(String(location.latitude));
+    setLongitude(String(location.longitude));
+  }, [location]);
 
   const mutation = useMutation({
     mutationFn: (req: EmergencyCaseRequest) => mobileApi.submitEmergencyRequest(req),
@@ -60,7 +73,7 @@ export default function EmergencyScreen() {
       setLastSubmittedCase(res.caseNumber);
       Alert.alert(
         'EMERGENCY REQUEST DISPATCHED',
-        `Incident Case ID: ${res.caseNumber}\n\nYour SOS call has been ingested by Municipal Emergency Operations Command. First responders are being routed to your coordinates.`,
+        `Incident Case ID: ${res.caseNumber}\n\nYour SOS call has been ingested by Disaster Operations Command for ${location.district}. First responders and emergency units are being routed to your coordinates.`,
         [
           {
             text: 'Track Live Status',
@@ -86,9 +99,15 @@ export default function EmergencyScreen() {
       emergencyCategory: selectedCategory,
       description,
       address,
-      latitude: parseFloat(latitude) || 13.0830,
-      longitude: parseFloat(longitude) || 80.2710,
+      latitude: parseFloat(latitude) || location.latitude,
+      longitude: parseFloat(longitude) || location.longitude,
       priority: categoryItem?.priority || 'HIGH',
+    });
+  };
+
+  const handleCall = (number: string) => {
+    Linking.openURL(`tel:${number}`).catch(() => {
+      Alert.alert('Call Failed', `Could not dial ${number} on this device.`);
     });
   };
 
@@ -101,7 +120,7 @@ export default function EmergencyScreen() {
         </View>
         <Text style={styles.title}>EMERGENCY ASSISTANCE (SOS)</Text>
         <Text style={styles.subtitle}>
-          Direct emergency line to Municipal Disaster Management & Paramedic Dispatch
+          Direct priority dispatch to State & District Disaster Response Forces (SDRF/NDRF)
         </Text>
       </View>
 
@@ -110,7 +129,7 @@ export default function EmergencyScreen() {
         <View style={styles.caseBadge}>
           <ShieldCheck size={18} color="#16A34A" />
           <Text style={styles.caseBadgeText}>
-            Active Case {lastSubmittedCase} is under municipal response.
+            ACTIVE DISPATCH CASE #{lastSubmittedCase} — Responders Mobilized
           </Text>
         </View>
       )}
@@ -127,6 +146,7 @@ export default function EmergencyScreen() {
                 key={cat.key}
                 style={[styles.catCard, isSelected && styles.catCardSelected]}
                 onPress={() => setSelectedCategory(cat.key)}
+                activeOpacity={0.8}
               >
                 <Icon size={24} color={isSelected ? Colors.white : '#DC3545'} />
                 <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
@@ -146,7 +166,8 @@ export default function EmergencyScreen() {
         <Text style={styles.cardTitle}>2. Describe Immediate Threat</Text>
         <TextInput
           style={styles.textInput}
-          placeholder="Describe symptoms, trapped status, water level, power failure, or medical equipment..."
+          placeholder="Describe symptoms, trapped status, water level, power failure, or oxygen dependence..."
+          placeholderTextColor="#94A3B8"
           value={description}
           onChangeText={setDescription}
           multiline
@@ -158,14 +179,15 @@ export default function EmergencyScreen() {
       <View style={styles.card}>
         <Text style={styles.cardTitle}>3. Location Coordinates for Dispatch</Text>
         <View style={styles.locationRow}>
-          <MapPin size={18} color="#DC3545" />
+          <Crosshair size={18} color="#DC3545" />
           <Text style={styles.gpsCoords}>
-            GPS Lat: {latitude}, Lon: {longitude} (Accurate to 3m)
+            GPS Lat: {latitude}, Lon: {longitude} ({location.district})
           </Text>
         </View>
         <TextInput
           style={[styles.textInput, { marginTop: 10 }]}
           placeholder="Street address / Landmark"
+          placeholderTextColor="#94A3B8"
           value={address}
           onChangeText={setAddress}
         />
@@ -186,19 +208,29 @@ export default function EmergencyScreen() {
 
       {/* Immediate Helplines Callout */}
       <View style={styles.helplineCard}>
-        <Text style={styles.helplineTitle}>Immediate Voice Helplines</Text>
+        <Text style={styles.helplineTitle}>Official Indian Emergency Helplines</Text>
         <View style={styles.helplineRow}>
-          <TouchableOpacity style={styles.callBadge}>
-            <Phone size={14} color="#16A34A" />
-            <Text style={styles.callBadgeText}>Disaster: 1070</Text>
+          <TouchableOpacity style={styles.callBadge} onPress={() => handleCall('112')}>
+            <Phone size={13} color="#166534" />
+            <Text style={styles.callBadgeText}>112 (Emergency)</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.callBadge}>
-            <Phone size={14} color="#16A34A" />
-            <Text style={styles.callBadgeText}>Ambulance: 108</Text>
+          <TouchableOpacity style={styles.callBadge} onPress={() => handleCall('1078')}>
+            <Phone size={13} color="#166534" />
+            <Text style={styles.callBadgeText}>1078 (NDRF)</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.callBadge}>
-            <Phone size={14} color="#16A34A" />
-            <Text style={styles.callBadgeText}>Police: 112</Text>
+        </View>
+        <View style={[styles.helplineRow, { marginTop: 6 }]}>
+          <TouchableOpacity style={styles.callBadge} onPress={() => handleCall('108')}>
+            <Phone size={13} color="#166534" />
+            <Text style={styles.callBadgeText}>108 (Ambulance)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.callBadge} onPress={() => handleCall('101')}>
+            <Phone size={13} color="#166534" />
+            <Text style={styles.callBadgeText}>101 (Fire/Rescue)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.callBadge} onPress={() => handleCall('1091')}>
+            <Phone size={13} color="#166534" />
+            <Text style={styles.callBadgeText}>1091 (Women)</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -338,7 +370,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontFamily: 'monospace',
     color: '#475569',
-    fontWeight: '600',
   },
   dispatchButton: {
     backgroundColor: '#DC3545',

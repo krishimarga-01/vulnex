@@ -29,6 +29,28 @@ public class MobileApiController {
     private final WeatherService weatherService;
     private final UserService userService;
     private final ImdEarlyWarningService imdEarlyWarningService;
+    private final com.extremeweather.service.LiveDisasterIntelligenceService liveDisasterIntelligenceService;
+
+    @GetMapping("/live-intelligence")
+    @Operation(summary = "Get unified live disaster intelligence (weather, CPCB AQI, IMD warnings, shelters) for any Indian location")
+    public ResponseEntity<ApiResponse<LiveDisasterIntelligenceDto>> getLiveIntelligence(
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false) String state,
+            @RequestParam(required = false) String district) {
+
+        LiveDisasterIntelligenceDto dto = liveDisasterIntelligenceService.getLiveIntelligence(
+                latitude, longitude, state, district
+        );
+        return ResponseEntity.ok(ApiResponse.ok(dto, "Live disaster intelligence retrieved successfully"));
+    }
+
+    @GetMapping("/disaster-map/india")
+    @Operation(summary = "Get active India-wide multi-hazard disaster map with state and district warnings")
+    public ResponseEntity<ApiResponse<List<IndiaDisasterMapRegionDto>>> getIndiaDisasterMap() {
+        List<IndiaDisasterMapRegionDto> map = liveDisasterIntelligenceService.getIndiaDisasterMap();
+        return ResponseEntity.ok(ApiResponse.ok(map, "India disaster map hazards retrieved successfully"));
+    }
 
     @PostMapping("/vulnerable-persons")
     @Operation(summary = "Register a vulnerable family member or patient from the mobile app")
@@ -140,11 +162,13 @@ public class MobileApiController {
                                EmergencyCaseService emergencyCaseService,
                                WeatherService weatherService,
                                UserService userService,
-                               ImdEarlyWarningService imdEarlyWarningService) {
+                               ImdEarlyWarningService imdEarlyWarningService,
+                               com.extremeweather.service.LiveDisasterIntelligenceService liveDisasterIntelligenceService) {
         this.vulnerablePersonService = vulnerablePersonService;
         this.emergencyCaseService = emergencyCaseService;
         this.weatherService = weatherService;
         this.userService = userService;
         this.imdEarlyWarningService = imdEarlyWarningService;
+        this.liveDisasterIntelligenceService = liveDisasterIntelligenceService;
     }
 }

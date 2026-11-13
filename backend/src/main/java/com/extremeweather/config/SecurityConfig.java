@@ -73,6 +73,11 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/weather/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/geography/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mobile/live-intelligence").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mobile/disaster-map/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mobile/weather-alerts/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mobile/weather/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/mobile/helplines").permitAll()
 
                         // Authority and Admin Dashboard Endpoints
                         .requestMatchers("/api/v1/authority/**").hasAnyRole("AUTHORITY", "ADMIN")
