@@ -90,6 +90,7 @@ public class GeographyService {
         List<GeoJsonFeature> features = new ArrayList<>();
 
         for (VulnerablePerson p : persons) {
+            if (p.getLatitude() == null || p.getLongitude() == null) continue;
             if (riskFilter != null && p.getCurrentRiskLevel() != riskFilter) {
                 continue;
             }
