@@ -31,10 +31,6 @@ services:
         fromDatabase:
           name: vulnex-postgres
           property: password
-      - key: SPRING_DATASOURCE_URL
-        fromDatabase:
-          name: vulnex-postgres
-          property: connectionString
       - key: SPRING_DATASOURCE_USERNAME
         fromDatabase:
           name: vulnex-postgres
