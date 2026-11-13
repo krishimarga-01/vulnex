@@ -9,6 +9,7 @@ interface MobileAuthContextType {
   isLoading: boolean;
   login: (credentials: AuthRequest) => Promise<AuthResponse>;
   register: (req: RegisterRequest) => Promise<AuthResponse>;
+  quickEnterDemo: (role: 'CITIZEN' | 'AUTHORITY') => Promise<AuthResponse>;
   logout: () => void;
 }
 
@@ -18,6 +19,20 @@ export const MobileAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [user, setUser] = useState<UserProfile | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  const quickEnterDemo = async (role: 'CITIZEN' | 'AUTHORITY') => {
+    setIsLoading(true);
+    try {
+      const res = await mobileApi.quickEnterDemo(role);
+      setToken(res.token);
+      mobileApi.setToken(res.token);
+      const profile = await mobileApi.getProfile();
+      setUser(profile);
+      return res;
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const login = async (credentials: AuthRequest) => {
     setIsLoading(true);
@@ -62,6 +77,7 @@ export const MobileAuthProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         isLoading,
         login,
         register,
+        quickEnterDemo,
         logout,
       }}
     >

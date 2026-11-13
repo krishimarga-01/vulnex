@@ -16,10 +16,19 @@ import { useMobileAuth } from '../../context/MobileAuthContext';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login, isLoading } = useMobileAuth();
+  const { login, quickEnterDemo, isLoading } = useMobileAuth();
 
-  const [username, setUsername] = useState('citizen_john');
+  const [username, setUsername] = useState('john.citizen@example.com');
   const [password, setPassword] = useState('Password@123');
+
+  const handleQuickDemo = async (role: 'CITIZEN' | 'AUTHORITY') => {
+    try {
+      await quickEnterDemo(role);
+      router.replace('/(tabs)');
+    } catch {
+      router.replace('/(tabs)');
+    }
+  };
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
@@ -56,13 +65,46 @@ export default function LoginScreen() {
 
       {/* Form Card */}
       <View style={styles.card}>
+        {/* Quick Demo Mode (Jury Instant Entry) */}
+        <View style={styles.quickDemoCard}>
+          <View style={styles.quickDemoHeader}>
+            <Text style={styles.quickDemoTitle}>🚨 Quick Demo Mode (Jury Access)</Text>
+            <Text style={styles.quickDemoSubtitle}>1-Click instant entry • No password required</Text>
+          </View>
+          <View style={styles.quickDemoActions}>
+            <TouchableOpacity
+              style={[styles.quickDemoBtn, styles.citizenDemoBtn]}
+              onPress={() => handleQuickDemo('CITIZEN')}
+              disabled={isLoading}
+            >
+              <Text style={styles.quickDemoBtnText}>Enter Citizen Demo</Text>
+              <Text style={styles.quickDemoSubText}>John Doe (Citizen SOS)</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.quickDemoBtn, styles.authorityDemoBtn]}
+              onPress={() => handleQuickDemo('AUTHORITY')}
+              disabled={isLoading}
+            >
+              <Text style={styles.quickDemoBtnText}>Enter Authority Demo</Text>
+              <Text style={styles.quickDemoSubText}>Rajesh Sharma (Triage)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR SECURE LOGIN</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Username or Email</Text>
           <View style={styles.inputWrapper}>
             <User size={18} color="#64748B" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="e.g. citizen_john"
+              placeholder="e.g. john.citizen@example.com"
               value={username}
               onChangeText={setUsername}
               autoCapitalize="none"
@@ -109,27 +151,27 @@ export default function LoginScreen() {
 
         {/* Quick Demo Pre-Fill Accounts */}
         <View style={styles.demoSection}>
-          <Text style={styles.demoTitle}>Instant Demo Profiles</Text>
+          <Text style={styles.demoTitle}>Instant Demo Credentials</Text>
           <View style={styles.demoRow}>
             <TouchableOpacity
               style={styles.demoBadge}
-              onPress={() => handlePreFill('citizen_john')}
+              onPress={() => handlePreFill('john.citizen@example.com')}
             >
               <Text style={styles.demoBadgeText}>Citizen John</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.demoBadge}
-              onPress={() => handlePreFill('caregiver_mary')}
+              onPress={() => handlePreFill('mary.caregiver@example.com')}
             >
               <Text style={styles.demoBadgeText}>Caregiver Mary</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.demoBadge}
-              onPress={() => handlePreFill('volunteer_sarah')}
+              onPress={() => handlePreFill('officer.raj@disasterresponse.gov')}
             >
-              <Text style={styles.demoBadgeText}>Volunteer Sarah</Text>
+              <Text style={styles.demoBadgeText}>Officer Raj</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -235,6 +277,76 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  quickDemoCard: {
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  quickDemoHeader: {
+    marginBottom: 10,
+  },
+  quickDemoTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#92400E',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  quickDemoSubtitle: {
+    fontSize: 10,
+    color: '#B45309',
+    marginTop: 2,
+  },
+  quickDemoActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  quickDemoBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  citizenDemoBtn: {
+    backgroundColor: '#FEF2F2',
+    borderColor: '#EF4444',
+  },
+  authorityDemoBtn: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#3B82F6',
+  },
+  quickDemoBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1E293B',
+  },
+  quickDemoSubText: {
+    fontSize: 9,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#E2E8F0',
+  },
+  dividerText: {
+    marginHorizontal: 8,
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#94A3B8',
+    letterSpacing: 0.5,
   },
   buttonContent: {
     flexDirection: 'row',

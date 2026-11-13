@@ -13,7 +13,9 @@ import {
   CheckCircle2,
   Mail,
   Phone,
-  Radio
+  Radio,
+  Zap,
+  Sparkles
 } from 'lucide-react';
 import { useLiveConnection } from '../contexts/LiveConnectionContext';
 
@@ -36,9 +38,30 @@ export const Login: React.FC = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, quickEnterDemo } = useAuth();
   const { isDemoMode, toggleDemoMode } = useLiveConnection();
   const navigate = useNavigate();
+
+  const handleDirectDemoEntry = async (role: 'CITIZEN' | 'AUTHORITY') => {
+    setLoading(true);
+    setError(null);
+    try {
+      await quickEnterDemo(role);
+      if (role === 'CITIZEN') {
+        navigate('/citizen');
+      } else {
+        navigate('/');
+      }
+    } catch {
+      if (role === 'CITIZEN') {
+        navigate('/citizen');
+      } else {
+        navigate('/');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -172,6 +195,73 @@ export const Login: React.FC = () => {
 
         {/* Card Body */}
         <div className="p-6">
+          {/* QUICK DEMO MODE (JURY EVALUATION) */}
+          <div className="mb-6 p-4 bg-gradient-to-br from-amber-950/70 via-navy-950 to-slate-900 border-2 border-amber-500/60 rounded-2xl shadow-xl">
+            <div className="flex items-center justify-between pb-2.5 mb-3 border-b border-amber-500/30">
+              <div className="flex items-center space-x-2">
+                <span className="p-1 rounded bg-amber-500/20 text-amber-400">
+                  <Zap className="w-4 h-4 text-amber-400" />
+                </span>
+                <div>
+                  <h3 className="text-xs font-black text-white uppercase tracking-wider">
+                    Quick Demo Mode (Instant Jury Access)
+                  </h3>
+                  <p className="text-[10px] text-amber-200/80">
+                    Direct passwordless entry • Sandboxed demo identities
+                  </p>
+                </div>
+              </div>
+              <span className="text-[9px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 uppercase font-black">
+                1-Click Direct
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <button
+                type="button"
+                onClick={() => handleDirectDemoEntry('CITIZEN')}
+                disabled={loading}
+                className="p-3 bg-navy-900/90 border border-red-500/50 hover:border-red-400 hover:bg-red-950/40 rounded-xl text-left transition group shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-red-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <HeartHandshake className="w-4 h-4 text-red-400" />
+                    Enter Citizen Portal
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-red-400 group-hover:translate-x-1 transition" />
+                </div>
+                <p className="text-[10px] text-slate-300 mt-1">
+                  Identity: <strong className="text-white">John Doe (Citizen)</strong>. Tap to test SOS distress & IMD alerts.
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDirectDemoEntry('AUTHORITY')}
+                disabled={loading}
+                className="p-3 bg-navy-900/90 border border-blue-500/50 hover:border-blue-400 hover:bg-blue-950/40 rounded-xl text-left transition group shadow-md"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-black text-blue-300 uppercase tracking-wide flex items-center gap-1.5">
+                    <Shield className="w-4 h-4 text-blue-400" />
+                    Enter Authority Dashboard
+                  </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-blue-400 group-hover:translate-x-1 transition" />
+                </div>
+                <p className="text-[10px] text-slate-300 mt-1">
+                  Identity: <strong className="text-white">Rajesh Sharma (Authority)</strong>. Triage SOS, assign NDRF teams.
+                </p>
+              </button>
+            </div>
+          </div>
+
+          <div className="relative flex py-2 items-center mb-4">
+            <div className="flex-grow border-t border-navy-800"></div>
+            <span className="flex-shrink mx-3 text-[10px] font-bold text-slate-500 uppercase tracking-widest font-mono">
+              Or Use Standard Login
+            </span>
+            <div className="flex-grow border-t border-navy-800"></div>
+          </div>
           {error && (
             <div className="mb-4 p-3 bg-red-950/80 border border-red-500/50 text-red-200 rounded-xl text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />

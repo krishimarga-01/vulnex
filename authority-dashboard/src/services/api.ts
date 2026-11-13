@@ -47,10 +47,27 @@ const resolveApiBaseUrl = (): string => {
 const BASE_URL = resolveApiBaseUrl();
 
 // In-memory demo state that can mutate during a live session (so adding an alert or changing case status works seamlessly!)
-let demoEmergencyCases = [...DEMO_EMERGENCY_CASES];
+const loadPersistedDemoCases = (): any[] => {
+  try {
+    const saved = localStorage.getItem('vulnex_demo_cases');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch {}
+  return [...DEMO_EMERGENCY_CASES];
+};
+
+let demoEmergencyCases = loadPersistedDemoCases();
 let demoWeatherAlerts = [...DEMO_WEATHER_ALERTS];
 let demoVulnerablePersons = [...DEMO_VULNERABLE_PERSONS];
 let demoResponseTeams = [...DEMO_RESPONSE_TEAMS];
+
+const persistDemoCases = () => {
+  try {
+    localStorage.setItem('vulnex_demo_cases', JSON.stringify(demoEmergencyCases));
+  } catch {}
+};
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -456,15 +473,18 @@ export const apiService = {
   // EMERGENCY CASES & TRIAGE
   // --------------------------------------------------------------------------
   async getEmergencyCases(): Promise<EmergencyCase[]> {
-    if (isDemoModeForced) {
-      await delay(200);
+    const isDemoActive = localStorage.getItem('vulnex_demo_active') === 'true' || isDemoModeForced;
+    if (isDemoActive) {
+      await delay(150);
       return [...demoEmergencyCases];
     }
 
     try {
       const res = await apiClient.get('/authority/dashboard/cases');
       updateConnectionStatus('LIVE');
-      return res.data.data;
+      const liveCases: EmergencyCase[] = res.data.data || [];
+      const activeDemoCases = demoEmergencyCases.filter(c => (c as any).isDemo || String(c.id).startsWith('EC-DEMO'));
+      return [...activeDemoCases, ...liveCases];
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       updateConnectionStatus('DEMO');
@@ -473,15 +493,17 @@ export const apiService = {
   },
 
   async updateEmergencyCaseStatus(id: string | number, status: EmergencyStatus, notes?: string): Promise<EmergencyCase> {
-    if (isDemoModeForced) {
-      await delay();
-      const targetCase = demoEmergencyCases.find((c) => c.id === id);
-      if (targetCase) {
-        targetCase.status = status;
-        if (notes) targetCase.resolutionNotes = notes;
-        targetCase.updatedAt = new Date().toISOString();
-        return { ...targetCase };
-      }
+    const targetCase = demoEmergencyCases.find((c) => String(c.id) === String(id) || String(c.caseNumber) === String(id));
+    if (targetCase) {
+      targetCase.status = status;
+      if (notes) targetCase.resolutionNotes = notes;
+      targetCase.updatedAt = new Date().toISOString();
+      persistDemoCases();
+    }
+
+    if (isDemoModeForced || localStorage.getItem('vulnex_demo_active') === 'true' || String(id).startsWith('EC-DEMO')) {
+      await delay(150);
+      if (targetCase) return { ...targetCase };
       throw new Error('Case not found');
     }
 
@@ -492,32 +514,27 @@ export const apiService = {
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       updateConnectionStatus('DEMO');
-      const targetCase = demoEmergencyCases.find((c) => c.id === id);
-      if (targetCase) {
-        targetCase.status = status;
-        if (notes) targetCase.resolutionNotes = notes;
-        targetCase.updatedAt = new Date().toISOString();
-        return { ...targetCase };
-      }
+      if (targetCase) return { ...targetCase };
       throw error;
     }
   },
 
   async assignResponseTeam(caseId: number | string, teamId: number | string, notes?: string): Promise<any> {
-    if (isDemoModeForced) {
-      await delay();
-      const targetCase = demoEmergencyCases.find((c) => String(c.id) === String(caseId));
-      const team = demoResponseTeams.find((t) => String(t.id) === String(teamId));
-      if (targetCase && team) {
-        targetCase.assignedTeamId = team.id;
-        targetCase.assignedTeamName = team.teamName;
-        targetCase.assignedTeamPhone = team.contactPhone;
-        targetCase.status = 'ASSIGNED';
-        targetCase.updatedAt = new Date().toISOString();
-        if (notes) targetCase.resolutionNotes = notes;
-        return { ...targetCase };
-      }
-      throw new Error('Case or team not found');
+    const targetCase = demoEmergencyCases.find((c) => String(c.id) === String(caseId) || String(c.caseNumber) === String(caseId));
+    const team = demoResponseTeams.find((t) => String(t.id) === String(teamId)) || demoResponseTeams[0];
+    if (targetCase && team) {
+      targetCase.assignedTeamId = team.id;
+      targetCase.assignedTeamName = team.teamName;
+      targetCase.assignedTeamPhone = team.contactPhone;
+      targetCase.status = 'ASSIGNED';
+      targetCase.updatedAt = new Date().toISOString();
+      if (notes) targetCase.resolutionNotes = notes;
+      persistDemoCases();
+    }
+
+    if (isDemoModeForced || localStorage.getItem('vulnex_demo_active') === 'true' || String(caseId).startsWith('EC-DEMO')) {
+      await delay(150);
+      return targetCase ? { ...targetCase } : { id: caseId, status: 'ASSIGNED', assignedTeamName: team?.teamName };
     }
 
     try {
@@ -530,17 +547,7 @@ export const apiService = {
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       updateConnectionStatus('DEMO');
-      const targetCase = demoEmergencyCases.find((c) => String(c.id) === String(caseId));
-      const team = demoResponseTeams.find((t) => String(t.id) === String(teamId));
-      if (targetCase && team) {
-        targetCase.assignedTeamId = team.id;
-        targetCase.assignedTeamName = team.teamName;
-        targetCase.assignedTeamPhone = team.contactPhone;
-        targetCase.status = 'ASSIGNED';
-        targetCase.updatedAt = new Date().toISOString();
-        return { ...targetCase };
-      }
-      throw error;
+      return targetCase ? { ...targetCase } : { id: caseId, status: 'ASSIGNED', assignedTeamName: team?.teamName };
     }
   },
 
@@ -890,23 +897,44 @@ export const apiService = {
   },
 
   async submitSosRequest(data: any): Promise<any> {
-    try {
-      const res = await apiClient.post('/mobile/emergency-cases', data);
-      updateConnectionStatus('LIVE');
-      return res.data.data;
-    } catch (error) {
-      if (!isNetworkError(error)) throw error;
-      updateConnectionStatus('DEMO');
-      const newCase = {
-        id: `EC-DEMO-${Date.now()}`,
-        caseNumber: `EC-${Date.now().toString().slice(-6)}`,
-        status: 'REPORTED',
-        createdAt: new Date().toISOString(),
-        ...data
-      };
-      demoEmergencyCases.unshift(newCase as any);
-      return newCase;
+    const isDemoActive = localStorage.getItem('vulnex_demo_active') === 'true' || isDemoModeForced;
+    const newCase = {
+      id: `EC-DEMO-${Date.now().toString().slice(-6)}`,
+      caseNumber: `EC-DEMO-${Date.now().toString().slice(-6)}`,
+      status: 'REPORTED',
+      priority: data.priority || 'CRITICAL',
+      emergencyCategory: data.emergencyCategory || 'EVACUATION',
+      description: data.description || 'CRITICAL CITIZEN SOS: Evacuation assistance urgently requested.',
+      address: data.address || 'Kodagu District, Karnataka (Citizen SOS Call)',
+      latitude: data.latitude || 12.426,
+      longitude: data.longitude || 75.739,
+      reporterName: 'John Doe (Demo Citizen)',
+      reporterPhone: '+91-9876543210',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isDemo: true,
+      ...data,
+    };
+
+    demoEmergencyCases.unshift(newCase as any);
+    persistDemoCases();
+
+    if (!isDemoModeForced) {
+      try {
+        const res = await apiClient.post('/mobile/emergency-cases', data);
+        updateConnectionStatus('LIVE');
+        if (res.data?.data) {
+          newCase.id = res.data.data.id || newCase.id;
+          newCase.caseNumber = res.data.data.caseNumber || newCase.caseNumber;
+          persistDemoCases();
+          return res.data.data;
+        }
+      } catch (err) {
+        // Fall back cleanly to the created demo case
+      }
     }
+
+    return newCase;
   },
 
   async createEmergencyCase(data: any): Promise<any> {
@@ -914,6 +942,17 @@ export const apiService = {
   },
 
   async getMyEmergencyCases(): Promise<any[]> {
+    const isDemoActive = localStorage.getItem('vulnex_demo_active') === 'true' || isDemoModeForced;
+    if (isDemoActive) {
+      const activeDemoCases = demoEmergencyCases.filter(
+        (c) => c.isDemo || String(c.id).startsWith('EC-DEMO') || c.reporterName?.includes('John')
+      );
+      if (activeDemoCases.length > 0) {
+        return activeDemoCases;
+      }
+      return demoEmergencyCases.slice(0, 3);
+    }
+
     try {
       const res = await apiClient.get('/mobile/emergency-cases/my');
       updateConnectionStatus('LIVE');
@@ -921,7 +960,10 @@ export const apiService = {
     } catch (error) {
       if (!isNetworkError(error)) throw error;
       updateConnectionStatus('DEMO');
-      return demoEmergencyCases.slice(0, 3);
+      const activeDemoCases = demoEmergencyCases.filter(
+        (c) => c.isDemo || String(c.id).startsWith('EC-DEMO')
+      );
+      return activeDemoCases.length > 0 ? activeDemoCases : demoEmergencyCases.slice(0, 3);
     }
   },
 

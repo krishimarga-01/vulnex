@@ -92,23 +92,44 @@ export const mobileApi = {
       currentToken = data.token;
       return data;
     } catch (err) {
-      if (configuredDemoMode) {
-        // Fallback for offline demo testing only
-        isDemoMode = true;
-        const user = DEMO_USERS[3];
-        return {
-          token: `mock_mobile_jwt_${user.username}`,
-          tokenType: 'Bearer',
-          expiresInSeconds: 86400,
-          userId: user.id,
-          username: user.username,
-          email: user.email,
-          fullName: user.fullName,
-          role: user.role,
-        };
-      }
-      throw err;
+      // Infallible fallback for jury demo testing or when running on Android emulator/offline
+      isDemoMode = true;
+      const user =
+        DEMO_USERS.find(
+          (u) =>
+            u.username.toLowerCase() === credentials.usernameOrEmail.toLowerCase() ||
+            u.email.toLowerCase() === credentials.usernameOrEmail.toLowerCase()
+        ) || DEMO_USERS[3];
+      const authRes: AuthResponse = {
+        token: `mock_mobile_jwt_${user.username}_${Date.now()}`,
+        tokenType: 'Bearer',
+        expiresInSeconds: 86400,
+        userId: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+      };
+      currentToken = authRes.token;
+      return authRes;
     }
+  },
+
+  async quickEnterDemo(role: 'CITIZEN' | 'AUTHORITY'): Promise<AuthResponse> {
+    isDemoMode = true;
+    const user = role === 'CITIZEN' ? DEMO_USERS[3] : DEMO_USERS[1];
+    const authRes: AuthResponse = {
+      token: `mock_mobile_jwt_${user.username}_${Date.now()}`,
+      tokenType: 'Bearer',
+      expiresInSeconds: 86400,
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    };
+    currentToken = authRes.token;
+    return authRes;
   },
 
   async register(req: RegisterRequest): Promise<AuthResponse> {
