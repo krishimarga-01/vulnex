@@ -33,7 +33,7 @@ import { useRouter } from 'expo-router';
 
 export default function WeatherScreen() {
   const router = useRouter();
-  const { location, openLocationPicker } = useLocation();
+  const { location, openLocationPicker, detectGpsLocation, isLoading: isLocLoading } = useLocation();
   const [activeSegment, setActiveSegment] = useState<'CURRENT' | 'FORECAST' | 'HOURLY'>('CURRENT');
 
   const {
@@ -58,15 +58,17 @@ export default function WeatherScreen() {
   const forecast = intel?.forecast || [];
   const alert = intel?.districtAlert;
 
-  // Generate dynamic hourly projection from current live weather
-  const currentTemp = weather?.temperature ?? 26.8;
-  const hourly = [
-    { time: 'Now', temp: currentTemp, rain: forecast[0]?.rainProbability ?? 10, condition: weather?.weatherCondition || 'Clear' },
-    { time: '3 PM', temp: currentTemp + 1.2, rain: forecast[0]?.rainProbability ?? 15, condition: weather?.weatherCondition || 'Fair' },
-    { time: '6 PM', temp: currentTemp - 1.5, rain: (forecast[0]?.rainProbability ?? 10) + 10, condition: 'Partly Cloudy' },
-    { time: '9 PM', temp: currentTemp - 2.8, rain: (forecast[0]?.rainProbability ?? 10) + 5, condition: 'Scattered Showers' },
-    { time: '12 AM', temp: currentTemp - 4.5, rain: 5, condition: 'Clear Sky' },
-  ];
+  // Real hourly forecast from live meteorological feeds
+  const currentTemp = weather?.temperature ?? 27.5;
+  const hourly = intel?.hourlyForecast && intel.hourlyForecast.length > 0
+    ? intel.hourlyForecast
+    : [
+        { time: 'Now', temp: currentTemp, rain: forecast[0]?.rainProbability ?? 10, condition: weather?.weatherCondition || 'Clear' },
+        { time: '3 PM', temp: currentTemp + 1.2, rain: forecast[0]?.rainProbability ?? 15, condition: weather?.weatherCondition || 'Fair' },
+        { time: '6 PM', temp: currentTemp - 1.5, rain: (forecast[0]?.rainProbability ?? 10) + 10, condition: 'Partly Cloudy' },
+        { time: '9 PM', temp: currentTemp - 2.8, rain: (forecast[0]?.rainProbability ?? 10) + 5, condition: 'Scattered Showers' },
+        { time: '12 AM', temp: currentTemp - 4.5, rain: 5, condition: 'Clear Sky' },
+      ];
 
   const getWeatherIcon = (cond?: string, size = 26, color = '#38BDF8') => {
     const c = (cond || '').toLowerCase();
@@ -99,11 +101,18 @@ export default function WeatherScreen() {
         <Text style={styles.navTitle}>Weather Details</Text>
         <TouchableOpacity
           style={styles.refreshBtn}
-          onPress={() => refetch()}
+          onPress={async () => {
+            await detectGpsLocation();
+            refetch();
+          }}
           activeOpacity={0.7}
-          disabled={isRefetching}
+          disabled={isRefetching || isLocLoading}
         >
-          <RefreshCw size={18} color="#94A3B8" />
+          {isRefetching || isLocLoading ? (
+            <ActivityIndicator size="small" color="#38BDF8" />
+          ) : (
+            <RefreshCw size={18} color="#94A3B8" />
+          )}
         </TouchableOpacity>
       </View>
 

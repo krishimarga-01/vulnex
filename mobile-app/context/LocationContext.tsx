@@ -97,44 +97,99 @@ export function LocationProvider({ children }: { children: ReactNode }) {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        console.warn('Location permission was not granted by user.');
         setPermissionGranted(false);
         setIsLoading(false);
         return false;
       }
 
       setPermissionGranted(true);
-      const position = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.Balanced,
-      });
+      // Try high-accuracy first with timeout, fall back to balanced
+      let position: Location.LocationObject | null = null;
+      try {
+        position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.High,
+        });
+      } catch {
+        position = await Location.getLastKnownPositionAsync();
+        if (!position) {
+          position = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+        }
+      }
+
+      if (!position) {
+        setIsLoading(false);
+        return false;
+      }
 
       const { latitude, longitude } = position.coords;
 
-      // Reverse geocode
-      const geocoded = await Location.reverseGeocodeAsync({ latitude, longitude });
-      if (geocoded && geocoded.length > 0) {
-        const item = geocoded[0];
-        const state = item.region || 'Karnataka';
-        const district = item.subregion || item.city || item.district || 'Kodagu';
-        const locality = item.name || item.street || district;
-        const pincode = item.postalCode || '571201';
+      // 1. Primary Reverse geocoding via native Google Play Services / iOS geocoder
+      let state = '';
+      let district = '';
+      let locality = '';
+      let pincode = '';
 
-        setLocation({
-          state,
-          district,
-          locality,
-          pincode,
-          latitude,
-          longitude,
-          isGpsDetected: true,
-        });
-      } else {
-        setLocation((prev) => ({
-          ...prev,
-          latitude,
-          longitude,
-          isGpsDetected: true,
-        }));
+      try {
+        const geocoded = await Location.reverseGeocodeAsync({ latitude, longitude });
+        if (geocoded && geocoded.length > 0) {
+          const item = geocoded[0];
+          state = item.region || item.subregion || '';
+          district = item.subregion || item.city || item.district || '';
+          locality = item.name || item.street || item.district || district;
+          pincode = item.postalCode || '';
+        }
+      } catch (nativeErr) {
+        console.warn('Native reverseGeocode failed, attempting Nominatim fallback:', nativeErr);
       }
+
+      // 2. Secondary fallback via OpenStreetMap Nominatim for exact Indian district
+      if (!district || district.toLowerCase() === 'unknown' || !state) {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+            {
+              headers: {
+                'User-Agent': 'VulnexDisasterApp/1.0',
+                Accept: 'application/json',
+              },
+            }
+          );
+          if (res.ok) {
+            const data = await res.json();
+            const addr = data.address || {};
+            state = addr.state || state || 'India';
+            district =
+              addr.state_district ||
+              addr.county ||
+              addr.city ||
+              addr.city_district ||
+              district ||
+              'Present Location';
+            locality = addr.suburb || addr.neighbourhood || addr.road || locality || district;
+            pincode = addr.postcode || pincode || '';
+          }
+        } catch (nomErr) {
+          console.warn('Nominatim reverse geocode fallback failed:', nomErr);
+        }
+      }
+
+      const resolvedState = state || 'India';
+      const resolvedDistrict = district || 'Present Location';
+      const resolvedLocality = locality || `${resolvedDistrict} Sector`;
+      const resolvedPincode = pincode || '560001';
+
+      setLocation({
+        state: resolvedState,
+        district: resolvedDistrict,
+        locality: resolvedLocality,
+        pincode: resolvedPincode,
+        latitude,
+        longitude,
+        isGpsDetected: true,
+      });
 
       setIsLocationConfigured(true);
       setIsLoading(false);
@@ -145,6 +200,11 @@ export function LocationProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
+
+  // Automatically detect present GPS location on startup
+  useEffect(() => {
+    detectGpsLocation();
+  }, []);
 
   const setManualLocation = (preset: IndianDistrictOption) => {
     setLocation({

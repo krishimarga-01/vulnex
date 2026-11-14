@@ -419,12 +419,20 @@ export interface ShelterItem {
   distanceKm?: number;
 }
 
+export interface HourlyForecastItem {
+  time: string;
+  temp: number;
+  rain: number;
+  condition: string;
+}
+
 export interface LiveDisasterIntelligence {
   location: LocationInfo;
   weather: LiveWeatherDetail;
   airQuality: AirQualityDetail;
   districtAlert: ImdDistrictAlert;
   forecast: ForecastDay[];
+  hourlyForecast?: HourlyForecastItem[];
   nearbyShelters: ShelterItem[];
   officialHelplines: { name: string; number: string; category: string }[];
   systemAttribution: string;

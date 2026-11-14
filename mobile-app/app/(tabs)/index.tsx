@@ -34,7 +34,7 @@ import LocationPickerModal from '../../components/LocationPickerModal';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { location, openLocationPicker } = useLocation();
+  const { location, openLocationPicker, detectGpsLocation, isLoading: isLocLoading } = useLocation();
 
   const {
     data: intel,
@@ -63,14 +63,31 @@ export default function HomeScreen() {
       alert.imdColorCode === 'ORANGE' ||
       alert.imdColorCode === 'YELLOW');
 
-  // Hourly forecasts calculated dynamically from current temperature
-  const currentTemp = weather?.temperature ?? 26.8;
-  const hourlyOutlook = [
-    { time: 'Now', temp: Math.round(currentTemp), icon: CloudSun },
-    { time: '3 PM', temp: Math.round(currentTemp + 1.2), icon: Sun },
-    { time: '6 PM', temp: Math.round(currentTemp - 1.5), icon: CloudSun },
-    { time: '9 PM', temp: Math.round(currentTemp - 2.8), icon: CloudRain },
-  ];
+  // Real hourly forecasts directly from live meteorological satellite/radar feed
+  const currentTemp = weather?.temperature ?? 27.5;
+  const hourlyOutlook = intel?.hourlyForecast && intel.hourlyForecast.length > 0
+    ? intel.hourlyForecast.slice(0, 4).map((h) => {
+        const cond = (h.condition || '').toLowerCase();
+        let icon = Sun;
+        if (cond.includes('rain') || cond.includes('drizzle')) icon = CloudRain;
+        else if (cond.includes('cloud') || cond.includes('overcast')) icon = CloudSun;
+        return {
+          time: h.time,
+          temp: Math.round(h.temp),
+          icon,
+        };
+      })
+    : [
+        { time: 'Now', temp: Math.round(currentTemp), icon: CloudSun },
+        { time: '3 PM', temp: Math.round(currentTemp + 1.2), icon: Sun },
+        { time: '6 PM', temp: Math.round(currentTemp - 1.5), icon: CloudSun },
+        { time: '9 PM', temp: Math.round(currentTemp - 2.8), icon: CloudRain },
+      ];
+
+  const handleRefreshAll = async () => {
+    await detectGpsLocation();
+    refetch();
+  };
 
   return (
     <View style={styles.screen}>
@@ -80,8 +97,8 @@ export default function HomeScreen() {
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
-            refreshing={isRefetching}
-            onRefresh={refetch}
+            refreshing={isRefetching || isLocLoading}
+            onRefresh={handleRefreshAll}
             tintColor="#DC2626"
             colors={['#DC2626']}
           />
@@ -98,6 +115,11 @@ export default function HomeScreen() {
             <Text style={styles.locationText} numberOfLines={1}>
               {location.district}, {location.state}
             </Text>
+            {location.isGpsDetected && (
+              <View style={styles.gpsChip}>
+                <Text style={styles.gpsChipText}>GPS 🛰️</Text>
+              </View>
+            )}
             <ChevronDown size={16} color="#94A3B8" />
           </TouchableOpacity>
 
@@ -358,7 +380,22 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '800',
     color: '#FFFFFF',
-    maxWidth: 240,
+    maxWidth: 200,
+  },
+  gpsChip: {
+    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#10B981',
+    marginLeft: 4,
+  },
+  gpsChipText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#10B981',
+    letterSpacing: 0.4,
   },
   bellBtn: {
     width: 40,
