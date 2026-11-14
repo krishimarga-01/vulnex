@@ -18,6 +18,8 @@ yarn-error.log*
 .env.local
 .env.*.local
 *.log
+*.log.*
+*.gz
 *.pem
 *.key
 *.cert
