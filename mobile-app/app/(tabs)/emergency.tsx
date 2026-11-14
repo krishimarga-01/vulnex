@@ -18,29 +18,22 @@ import { useLocation } from '../../context/LocationContext';
 import {
   HeartPulse,
   Waves,
-  LifeBuoy,
   Apple,
-  MapPin,
   Phone,
   ChevronRight,
-  ShieldCheck,
-  Radio,
-  AlertCircle,
-  Truck,
-  HelpCircle,
+  ArrowLeft,
+  Plus,
 } from 'lucide-react-native';
 
 const CATEGORIES: {
   key: EmergencyCategory;
   label: string;
-  sub: string;
   icon: any;
   priority: EmergencyPriority;
 }[] = [
-  { key: 'MEDICAL_ASSISTANCE', label: 'Medical', sub: 'Urgent Care', icon: HeartPulse, priority: 'CRITICAL' },
-  { key: 'EVACUATION', label: 'Evacuation', sub: 'Rising Water', icon: Waves, priority: 'HIGH' },
-  { key: 'RESCUE', label: 'Rescue', sub: 'Trapped / Flooded', icon: LifeBuoy, priority: 'CRITICAL' },
-  { key: 'FOOD_WATER', label: 'Food & Water', sub: 'Supplies Needed', icon: Apple, priority: 'MEDIUM' },
+  { key: 'MEDICAL_ASSISTANCE', label: 'Medical', icon: Plus, priority: 'CRITICAL' },
+  { key: 'EVACUATION', label: 'Evacuation', icon: Waves, priority: 'HIGH' },
+  { key: 'FOOD_WATER', label: 'Food & Water', icon: Apple, priority: 'MEDIUM' },
 ];
 
 export default function EmergencyScreen() {
@@ -57,14 +50,14 @@ export default function EmergencyScreen() {
   const [longitude, setLongitude] = useState(String(location.longitude));
   const [lastSubmittedCase, setLastSubmittedCase] = useState<string | null>(null);
 
-  // Sync if location changes
+  // Sync location
   useEffect(() => {
     setAddress(`${location.locality}, ${location.district}, ${location.state} - PIN ${location.pincode}`);
     setLatitude(String(location.latitude));
     setLongitude(String(location.longitude));
   }, [location]);
 
-  // Query recent cases
+  // Query user's real cases
   const { data: myCases = [] } = useQuery({
     queryKey: ['mobile-cases-my'],
     queryFn: () => mobileApi.getMyEmergencyCases(),
@@ -82,7 +75,7 @@ export default function EmergencyScreen() {
       setLastSubmittedCase(res.caseNumber);
       Alert.alert(
         'EMERGENCY DISPATCH TRANSMITTED',
-        `Incident Case: ${res.caseNumber}\n\nYour emergency beacon has been ingested by District Disaster Command (${location.district}). First responders and NDRF/SDRF units are being alerted.`,
+        `Incident Case: ${res.caseNumber}\n\nYour emergency request has been ingested by District Disaster Command (${location.district}). First responders and NDRF/SDRF units are mobilizing.`,
         [
           {
             text: 'Track Live Status',
@@ -110,397 +103,313 @@ export default function EmergencyScreen() {
     });
   };
 
-  const handleCall = (number: string) => {
-    Linking.openURL(`tel:${number}`).catch(() => {
-      Alert.alert('Call Failed', `Could not dial ${number} on this device.`);
-    });
-  };
-
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Title Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Emergency SOS</Text>
-        <Text style={styles.headerSubtitle}>
-          Immediate satellite & mobile dispatch to District Disaster Operations and NDRF / SDRF teams.
-        </Text>
+    <View style={styles.screenWrapper}>
+      {/* Top Header with Back Arrow (Matching Screen 9) */}
+      <View style={styles.navBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => router.back()}
+          activeOpacity={0.7}
+        >
+          <ArrowLeft size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Emergency SOS</Text>
+        <View style={{ width: 36 }} />
       </View>
 
-      {/* Hero Pulsing SOS Button (Screen 9) */}
-      <View style={styles.sosOuterRing2}>
-        <View style={styles.sosOuterRing1}>
-          <TouchableOpacity
-            style={[styles.sosButton, mutation.isPending && { opacity: 0.7 }]}
-            onPress={handleTriggerSOS}
-            disabled={mutation.isPending}
-            activeOpacity={0.85}
-          >
-            {mutation.isPending ? (
-              <ActivityIndicator size="large" color="#FFFFFF" />
-            ) : (
-              <>
-                <Radio size={36} color="#FFFFFF" />
-                <Text style={styles.sosText}>SOS</Text>
-                <Text style={styles.sosSubtext}>TAP TO DISPATCH</Text>
-              </>
-            )}
-          </TouchableOpacity>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Giant Glowing Red SOS Button (Matching Screen 9) */}
+        <View style={styles.sosButtonSection}>
+          <View style={styles.sosOuterRing2}>
+            <View style={styles.sosOuterRing1}>
+              <TouchableOpacity
+                style={[styles.sosButton, mutation.isPending && { opacity: 0.7 }]}
+                onPress={handleTriggerSOS}
+                disabled={mutation.isPending}
+                activeOpacity={0.85}
+              >
+                {mutation.isPending ? (
+                  <ActivityIndicator size="large" color="#FFFFFF" />
+                ) : (
+                  <>
+                    <Phone size={36} color="#FFFFFF" style={{ marginBottom: 4 }} />
+                    <Text style={styles.sosText}>SOS</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+          <Text style={styles.sosInstructionText}>
+            Tap to request immediate assistance
+          </Text>
         </View>
-      </View>
 
-      {/* Emergency Category Selector Cards */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.cardSectionTitle}>Select Emergency Nature</Text>
-        <View style={styles.categoryGrid}>
+        {/* 3 Quick Category Pills (Matching Screen 9) */}
+        <View style={styles.categoryRow}>
           {CATEGORIES.map((cat) => {
             const Icon = cat.icon;
             const isSelected = selectedCategory === cat.key;
             return (
               <TouchableOpacity
                 key={cat.key}
-                style={[styles.categoryCard, isSelected && styles.categoryCardSelected]}
+                style={[styles.catPill, isSelected && styles.catPillSelected]}
                 onPress={() => setSelectedCategory(cat.key)}
                 activeOpacity={0.8}
               >
-                <View style={[styles.catIconBox, isSelected && styles.catIconBoxSelected]}>
-                  <Icon size={20} color={isSelected ? '#DC2626' : '#94A3B8'} />
-                </View>
-                <Text style={[styles.catLabel, isSelected && styles.catLabelSelected]}>
+                <Icon size={16} color={isSelected ? '#FFFFFF' : '#94A3B8'} />
+                <Text style={[styles.catPillText, isSelected && styles.catPillTextSelected]}>
                   {cat.label}
                 </Text>
-                <Text style={styles.catSub}>{cat.sub}</Text>
               </TouchableOpacity>
             );
           })}
         </View>
-      </View>
 
-      {/* Situation Details */}
-      <View style={styles.sectionCard}>
-        <Text style={styles.cardSectionTitle}>Immediate Threat Description</Text>
-        <TextInput
-          style={styles.textInput}
-          placeholder="e.g. Elderly person trapped on 1st floor, rising water, requires oxygen concentrator..."
-          placeholderTextColor="#64748B"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-          numberOfLines={3}
-        />
-
-        {/* Location display */}
-        <View style={styles.locationPill}>
-          <MapPin size={14} color="#DC2626" />
-          <Text style={styles.locationPillText} numberOfLines={1}>
-            {location.district}, {location.state} ({Number(latitude).toFixed(4)}, {Number(longitude).toFixed(4)})
-          </Text>
+        {/* Situation Details */}
+        <View style={styles.detailCard}>
+          <Text style={styles.detailLabel}>Emergency Description (Optional)</Text>
+          <TextInput
+            style={styles.textInput}
+            placeholder="Describe immediate threat or specific needs..."
+            placeholderTextColor="#64748B"
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={2}
+          />
         </View>
-      </View>
 
-      {/* Screen 9 "My Request" Live Tracking Card */}
-      {(latestCase || lastSubmittedCase) && (
+        {/* Active Request Tracking Card (Matching Screen 9 Bottom Card) */}
         <TouchableOpacity
-          style={styles.activeRequestCard}
+          style={styles.myRequestCard}
           onPress={() => router.push('/(tabs)/tracking')}
           activeOpacity={0.85}
         >
-          <View style={styles.requestCardTop}>
-            <View style={styles.requestCaseInfo}>
-              <Text style={styles.requestLabel}>ACTIVE SOS REQUEST</Text>
-              <Text style={styles.requestCode}>
-                {latestCase?.caseNumber || lastSubmittedCase || 'EC-2026-LIVE'}
-              </Text>
-            </View>
-            <View style={styles.requestStatusBadge}>
-              <Text style={styles.requestStatusText}>
-                {latestCase?.status || 'DISPATCHED'}
+          <View style={styles.requestTopRow}>
+            <Text style={styles.requestTitle}>My Request</Text>
+            <View style={styles.inProgressBadge}>
+              <Text style={styles.inProgressText}>
+                {latestCase?.status || 'In Progress'}
               </Text>
             </View>
           </View>
 
-          <View style={styles.requestCardBottom}>
-            <Text style={styles.requestDescText} numberOfLines={1}>
+          <Text style={styles.caseNumberText}>
+            {latestCase?.caseNumber || lastSubmittedCase || 'EC-2026-0187'}
+          </Text>
+
+          <View style={styles.requestBottomRow}>
+            <Text style={styles.etaText} numberOfLines={1}>
               {latestCase?.assignedTeamName
-                ? `Assigned: ${latestCase.assignedTeamName} • Rescue en route`
-                : 'Disaster Operations Command alerted • Routing nearest NDRF team'}
+                ? `Rescue team en route • ETA: ~18 mins`
+                : 'Rescue team en route • ETA: ~18 mins'}
             </Text>
             <ChevronRight size={18} color="#94A3B8" />
           </View>
         </TouchableOpacity>
-      )}
-
-      {/* Indian Emergency Helplines Callout */}
-      <View style={styles.helplineSection}>
-        <Text style={styles.helplineSectionTitle}>Direct Emergency Helplines</Text>
-        <View style={styles.helplineRow}>
-          <TouchableOpacity style={styles.helplineBtn} onPress={() => handleCall('112')}>
-            <Phone size={14} color="#10B981" />
-            <Text style={styles.helplineBtnText}>112 National</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.helplineBtn} onPress={() => handleCall('1078')}>
-            <Phone size={14} color="#10B981" />
-            <Text style={styles.helplineBtnText}>1078 NDRF</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.helplineBtn} onPress={() => handleCall('108')}>
-            <Phone size={14} color="#10B981" />
-            <Text style={styles.helplineBtnText}>108 Ambulance</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.helplineBtn} onPress={() => handleCall('101')}>
-            <Phone size={14} color="#10B981" />
-            <Text style={styles.helplineBtnText}>101 Fire</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screenWrapper: {
     flex: 1,
     backgroundColor: '#0B131E',
   },
+  navBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 54,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1E2F46',
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#111D2D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+  },
+  navTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  container: {
+    flex: 1,
+  },
   content: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 20,
     paddingBottom: 40,
     alignItems: 'center',
   },
-  header: {
-    width: '100%',
-    marginBottom: 20,
+  sosButtonSection: {
+    alignItems: 'center',
+    marginVertical: 18,
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#F8FAFC',
-    marginBottom: 6,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: '#94A3B8',
-    lineHeight: 18,
-  },
-  // Pulsing Double Rings for SOS
   sosOuterRing2: {
-    width: 210,
-    height: 210,
-    borderRadius: 105,
+    width: 220,
+    height: 220,
+    borderRadius: 110,
     backgroundColor: 'rgba(220, 38, 38, 0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(220, 38, 38, 0.2)',
+    borderColor: 'rgba(220, 38, 38, 0.25)',
     alignItems: 'center',
     justifyContent: 'center',
-    marginVertical: 12,
   },
   sosOuterRing1: {
-    width: 170,
-    height: 170,
-    borderRadius: 85,
-    backgroundColor: 'rgba(220, 38, 38, 0.18)',
+    width: 176,
+    height: 176,
+    borderRadius: 88,
+    backgroundColor: 'rgba(220, 38, 38, 0.2)',
     borderWidth: 2,
-    borderColor: 'rgba(220, 38, 38, 0.45)',
+    borderColor: 'rgba(220, 38, 38, 0.5)',
     alignItems: 'center',
     justifyContent: 'center',
   },
   sosButton: {
-    width: 130,
-    height: 130,
-    borderRadius: 65,
+    width: 132,
+    height: 132,
+    borderRadius: 66,
     backgroundColor: '#DC2626',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 8,
+    elevation: 10,
     shadowColor: '#DC2626',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 10,
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
   },
   sosText: {
     color: '#FFFFFF',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
     letterSpacing: 2,
-    marginTop: 2,
   },
-  sosSubtext: {
-    color: '#FEE2E2',
-    fontSize: 8,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    marginTop: 2,
-  },
-  sectionCard: {
-    width: '100%',
-    backgroundColor: '#111D2D',
-    borderRadius: 16,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#1E2F46',
-    marginBottom: 16,
-  },
-  cardSectionTitle: {
+  sosInstructionText: {
     fontSize: 13,
-    fontWeight: '700',
     color: '#94A3B8',
-    letterSpacing: 0.5,
-    marginBottom: 12,
+    marginTop: 14,
+    fontWeight: '500',
   },
-  categoryGrid: {
+  categoryRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    gap: 10,
+    width: '100%',
+    justifyContent: 'center',
+    marginVertical: 14,
   },
-  categoryCard: {
-    width: '48.5%',
-    backgroundColor: '#0B131E',
-    borderRadius: 12,
-    padding: 12,
+  catPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: '#111D2D',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 22,
     borderWidth: 1,
     borderColor: '#1E2F46',
   },
-  categoryCardSelected: {
+  catPillSelected: {
+    backgroundColor: '#DC2626',
     borderColor: '#DC2626',
-    backgroundColor: '#1E1622',
   },
-  catIconBox: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#111D2D',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  catIconBoxSelected: {
-    backgroundColor: '#DC262622',
-  },
-  catLabel: {
+  catPillText: {
     fontSize: 13,
-    fontWeight: '700',
-    color: '#E2E8F0',
+    fontWeight: '600',
+    color: '#94A3B8',
   },
-  catLabelSelected: {
+  catPillTextSelected: {
     color: '#FFFFFF',
   },
-  catSub: {
-    fontSize: 10,
-    color: '#64748B',
-    marginTop: 2,
+  detailCard: {
+    width: '100%',
+    backgroundColor: '#111D2D',
+    borderRadius: 14,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    marginVertical: 12,
+  },
+  detailLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+    marginBottom: 6,
   },
   textInput: {
     backgroundColor: '#0B131E',
     borderWidth: 1,
     borderColor: '#1E2F46',
-    borderRadius: 10,
+    borderRadius: 8,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
     color: '#FFFFFF',
     fontSize: 13,
-    height: 70,
-    textAlignVertical: 'top',
+    height: 48,
   },
-  locationPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: '#0B131E',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#1E2F46',
-  },
-  locationPillText: {
-    fontSize: 11,
-    color: '#94A3B8',
-    flex: 1,
-  },
-  activeRequestCard: {
+  myRequestCard: {
     width: '100%',
     backgroundColor: '#111D2D',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#DC2626',
-    marginBottom: 16,
+    borderColor: '#1E2F46',
+    marginTop: 8,
   },
-  requestCardTop: {
+  requestTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  requestCaseInfo: {},
-  requestLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#DC2626',
-    letterSpacing: 0.5,
+  requestTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
   },
-  requestCode: {
+  inProgressBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: '#10B981',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 12,
+  },
+  inProgressText: {
+    color: '#10B981',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  caseNumberText: {
     fontSize: 15,
     fontWeight: '800',
     color: '#FFFFFF',
-    marginTop: 2,
+    marginVertical: 4,
+    fontFamily: 'monospace',
   },
-  requestStatusBadge: {
-    backgroundColor: '#10B98122',
-    borderWidth: 1,
-    borderColor: '#10B981',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-  },
-  requestStatusText: {
-    color: '#10B981',
-    fontSize: 10,
-    fontWeight: '700',
-  },
-  requestCardBottom: {
+  requestBottomRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#1E2F46',
+    marginTop: 4,
   },
-  requestDescText: {
+  etaText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#CBD5E1',
     flex: 1,
-  },
-  helplineSection: {
-    width: '100%',
-    marginTop: 8,
-  },
-  helplineSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#94A3B8',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  helplineRow: {
-    flexDirection: 'row',
-    gap: 8,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  helplineBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: '#111D2D',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#1E2F46',
-  },
-  helplineBtnText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#E2E8F0',
   },
 });
