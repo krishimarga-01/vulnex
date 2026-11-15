@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -104,6 +105,19 @@ export default function HomeScreen() {
           />
         }
       >
+        {/* Official VULNEX Brand Header (From Intro Video) */}
+        <View style={styles.brandBar}>
+          <Image
+            source={require('../../assets/vulnex-logo.png')}
+            style={styles.brandLogo}
+            resizeMode="contain"
+          />
+          <View style={styles.liveFeedIndicator}>
+            <View style={styles.livePulseDot} />
+            <Text style={styles.liveFeedText}>LIVE RADAR</Text>
+          </View>
+        </View>
+
         {/* Top Header: Location Selector & Notification Bell */}
         <View style={styles.header}>
           <TouchableOpacity
@@ -362,6 +376,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 54,
     paddingBottom: 28,
+  },
+  brandBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#162335',
+  },
+  brandLogo: {
+    width: 145,
+    height: 38,
+  },
+  liveFeedIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(34, 197, 94, 0.12)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(34, 197, 94, 0.3)',
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#22C55E',
+    marginRight: 5,
+  },
+  liveFeedText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#22C55E',
+    letterSpacing: 0.8,
   },
   header: {
     flexDirection: 'row',

@@ -91,8 +91,11 @@ export default function EmergencyScreen() {
 
   const handleTriggerSOS = () => {
     const categoryItem = CATEGORIES.find((c) => c.key === selectedCategory);
-    const desc = description.trim() || `Urgent ${categoryItem?.label || 'Emergency'} assistance needed in ${location.district}.`;
+    const desc =
+      description.trim() ||
+      `EMERGENCY SOS: Citizen in ${location.district}, ${location.state} requested immediate dispatch. Live GPS: ${latitude}, ${longitude}.`;
 
+    // 1. Transmit emergency telemetry immediately to Government Disaster Response server
     mutation.mutate({
       emergencyCategory: selectedCategory,
       description: desc,
@@ -100,6 +103,17 @@ export default function EmergencyScreen() {
       latitude: parseFloat(latitude) || location.latitude,
       longitude: parseFloat(longitude) || location.longitude,
       priority: categoryItem?.priority || 'CRITICAL',
+    });
+
+    // 2. Open device phone keypad dialer immediately with 112 pre-filled
+    Linking.openURL('tel:112').catch((err) => {
+      console.warn('Could not launch dialer:', err);
+    });
+  };
+
+  const handleDialKeypad = (number: string) => {
+    Linking.openURL(`tel:${number}`).catch((err) => {
+      console.warn('Could not launch dialer:', err);
     });
   };
 
@@ -145,8 +159,42 @@ export default function EmergencyScreen() {
             </View>
           </View>
           <Text style={styles.sosInstructionText}>
-            Tap to request immediate assistance
+            Tap SOS to dial 112 & dispatch to Gov Server
           </Text>
+          <View style={styles.sosGovBadge}>
+            <View style={styles.livePulseDot} />
+            <Text style={styles.sosGovBadgeText}>
+              Gov Disaster Server Connected (GPS: {Number(latitude || location.latitude).toFixed(3)}, {Number(longitude || location.longitude).toFixed(3)})
+            </Text>
+          </View>
+        </View>
+
+        {/* Quick Keypad Calling Options */}
+        <View style={styles.keypadRow}>
+          <TouchableOpacity
+            style={styles.keypadBtn}
+            onPress={() => handleDialKeypad('112')}
+            activeOpacity={0.75}
+          >
+            <Phone size={14} color="#EF4444" style={{ marginRight: 6 }} />
+            <Text style={styles.keypadBtnText}>Dial 112 (National)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.keypadBtn}
+            onPress={() => handleDialKeypad('108')}
+            activeOpacity={0.75}
+          >
+            <Phone size={14} color="#38BDF8" style={{ marginRight: 6 }} />
+            <Text style={styles.keypadBtnText}>Dial 108 (Ambulance)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.keypadBtn}
+            onPress={() => handleDialKeypad('1077')}
+            activeOpacity={0.75}
+          >
+            <Phone size={14} color="#F59E0B" style={{ marginRight: 6 }} />
+            <Text style={styles.keypadBtnText}>Dial 1077 (Disaster)</Text>
+          </TouchableOpacity>
         </View>
 
         {/* 3 Quick Category Pills (Matching Screen 9) */}
@@ -304,6 +352,51 @@ const styles = StyleSheet.create({
     color: '#94A3B8',
     marginTop: 14,
     fontWeight: '500',
+  },
+  sosGovBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0F2236',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#1E3A5F',
+  },
+  livePulseDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#22C55E',
+    marginRight: 6,
+  },
+  sosGovBadgeText: {
+    fontSize: 10,
+    color: '#38BDF8',
+    fontWeight: '600',
+  },
+  keypadRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginVertical: 14,
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+  },
+  keypadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111D2D',
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    borderRadius: 18,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  keypadBtnText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F1F5F9',
   },
   categoryRow: {
     flexDirection: 'row',
