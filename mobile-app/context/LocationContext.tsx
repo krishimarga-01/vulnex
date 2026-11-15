@@ -19,6 +19,20 @@ export interface IndianDistrictOption {
   pincode: string;
 }
 
+export const getUserLocation = async (): Promise<{ latitude: number; longitude: number }> => {
+  const { status } = await Location.requestForegroundPermissionsAsync();
+  if (status !== 'granted') {
+    throw new Error('Location permission denied');
+  }
+  const location = await Location.getCurrentPositionAsync({
+    accuracy: Location.Accuracy.High,
+  });
+  return {
+    latitude: location.coords.latitude,
+    longitude: location.coords.longitude,
+  };
+};
+
 export const INDIAN_DISTRICT_PRESETS: IndianDistrictOption[] = [
   // Karnataka (Primary Monitored State)
   { state: 'Karnataka', district: 'Kodagu', latitude: 12.4244, longitude: 75.7382, pincode: '571201' },

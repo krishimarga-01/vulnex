@@ -71,7 +71,12 @@ public class SecurityConfig {
                                 "/actuator/health",
                                 "/actuator/info"
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/weather/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/air-quality/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/environment/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/weather/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/air-quality/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/environment/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/geography/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mobile/live-intelligence").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/v1/mobile/disaster-map/**").permitAll()

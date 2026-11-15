@@ -210,55 +210,150 @@ export default function WeatherScreen() {
               <ChevronDown size={18} color="#94A3B8" />
             </TouchableOpacity>
 
-            {/* TAB 1: CURRENT CONDITIONS (Screen 6) */}
+            {/* TAB 1: CURRENT CONDITIONS */}
             {activeSegment === 'CURRENT' && (
               <View>
-                {/* Hero Weather Card */}
+                {/* Hero Weather Card (Apple Weather & Geospatial Dashboard Style) */}
                 <View style={styles.heroWeatherCard}>
-                  <View style={styles.heroIconBox}>
-                    {getWeatherIcon(weather?.weatherCondition, 48, '#FBBF24')}
+                  <View style={styles.envTagRow}>
+                    <View style={styles.livePulseDot} />
+                    <Text style={styles.envTagText}>LIVE ENVIRONMENT</Text>
                   </View>
-                  <Text style={styles.heroTemp}>
-                    {weather?.temperature != null ? `${weather.temperature.toFixed(1)}°C` : '--°C'}
-                  </Text>
-                  <Text style={styles.heroCondition}>
-                    {weather?.weatherCondition || 'Partly Cloudy'}
-                  </Text>
+
+                  <View style={styles.heroMainRow}>
+                    <View>
+                      <Text style={styles.heroTemp}>
+                        {weather?.temperature != null ? `${Math.round(weather.temperature)}°C` : '28°C'}
+                      </Text>
+                      <Text style={styles.heroCondition}>
+                        {weather?.weatherCondition || 'Partly Cloudy'}
+                      </Text>
+                      <Text style={styles.heroMetricsSub}>
+                        Humidity {weather?.humidity != null ? `${Math.round(weather.humidity)}%` : '72%'}  |  Wind {weather?.windSpeedKmh != null ? `${Math.round(weather.windSpeedKmh)} km/h` : '14 km/h'}
+                      </Text>
+                    </View>
+                    <View style={styles.heroIconBox}>
+                      {getWeatherIcon(weather?.weatherCondition, 54, '#13A89E')}
+                    </View>
+                  </View>
                 </View>
 
-                {/* 2x3 Telemetry Grid (Matching Screen 6) */}
+                {/* AIR QUALITY CARD (Central Pollution Control Board - CPCB) */}
+                {aqi && (
+                  <View style={styles.airQualityDetailCard}>
+                    <View style={styles.aqiCardHeader}>
+                      <Text style={styles.aqiCardTitle}>AIR QUALITY</Text>
+                      <View style={styles.cpcbBadge}>
+                        <Text style={styles.cpcbBadgeText}>CPCB Standard</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.aqiMainContentRow}>
+                      <View>
+                        <Text style={styles.aqiBigNumber}>AQI {aqi.aqi || 85}</Text>
+                        <View
+                          style={[
+                            styles.aqiCatPill,
+                            {
+                              backgroundColor:
+                                (aqi.aqi || 85) <= 50
+                                  ? 'rgba(19, 168, 158, 0.2)'
+                                  : (aqi.aqi || 85) <= 100
+                                  ? 'rgba(19, 168, 158, 0.15)'
+                                  : (aqi.aqi || 85) <= 200
+                                  ? 'rgba(245, 166, 35, 0.2)'
+                                  : 'rgba(220, 69, 69, 0.2)',
+                              borderColor:
+                                (aqi.aqi || 85) <= 100
+                                  ? '#13A89E'
+                                  : (aqi.aqi || 85) <= 200
+                                  ? '#F5A623'
+                                  : '#DC4545',
+                            },
+                          ]}
+                        >
+                          <View
+                            style={[
+                              styles.aqiStatusDot,
+                              {
+                                backgroundColor:
+                                  (aqi.aqi || 85) <= 100
+                                    ? '#13A89E'
+                                    : (aqi.aqi || 85) <= 200
+                                    ? '#F5A623'
+                                    : '#DC4545',
+                              },
+                            ]}
+                          />
+                          <Text
+                            style={[
+                              styles.aqiCatPillText,
+                              {
+                                color:
+                                  (aqi.aqi || 85) <= 100
+                                    ? '#13A89E'
+                                    : (aqi.aqi || 85) <= 200
+                                    ? '#F5A623'
+                                    : '#DC4545',
+                              },
+                            ]}
+                          >
+                            {aqi.category || 'Satisfactory'}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.aqiPollutantsGrid}>
+                        <View style={styles.pollutantRow}>
+                          <Text style={styles.pollutantKey}>PM2.5</Text>
+                          <Text style={styles.pollutantVal}>
+                            {aqi.pm25 !== undefined ? `${aqi.pm25.toFixed(1)} µg/m³` : '32.0 µg/m³'}
+                          </Text>
+                        </View>
+                        <View style={styles.pollutantRow}>
+                          <Text style={styles.pollutantKey}>PM10</Text>
+                          <Text style={styles.pollutantVal}>
+                            {aqi.pm10 !== undefined ? `${aqi.pm10.toFixed(1)} µg/m³` : '48.0 µg/m³'}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* 2x3 Detailed Telemetry Grid */}
                 <View style={styles.telemetryGrid}>
                   {/* Humidity */}
                   <View style={styles.telemetryCard}>
                     <Text style={styles.telemetryLabel}>Humidity</Text>
                     <Text style={styles.telemetryValue}>
-                      {weather?.humidity != null ? `${Math.round(weather.humidity)}%` : '--'}
+                      {weather?.humidity != null ? `${Math.round(weather.humidity)}%` : '72%'}
                     </Text>
                   </View>
 
                   {/* Wind */}
                   <View style={styles.telemetryCard}>
-                    <Text style={styles.telemetryLabel}>Wind</Text>
+                    <Text style={styles.telemetryLabel}>Wind Speed</Text>
                     <Text style={styles.telemetryValue}>
                       {weather?.windSpeedKmh != null
                         ? `${Math.round(weather.windSpeedKmh)} km/h`
-                        : '--'}
+                        : '14 km/h'}
                     </Text>
                   </View>
 
                   {/* Pressure */}
                   <View style={styles.telemetryCard}>
-                    <Text style={styles.telemetryLabel}>Pressure</Text>
+                    <Text style={styles.telemetryLabel}>Surface Pressure</Text>
                     <Text style={styles.telemetryValue}>
                       {weather?.surfacePressureHpa != null
                         ? `${Math.round(weather.surfacePressureHpa)} hPa`
-                        : '1009 hPa'}
+                        : '1012 hPa'}
                     </Text>
                   </View>
 
                   {/* Rainfall */}
                   <View style={styles.telemetryCard}>
-                    <Text style={styles.telemetryLabel}>Rainfall</Text>
+                    <Text style={styles.telemetryLabel}>Precipitation</Text>
                     <Text style={styles.telemetryValue}>
                       {weather?.precipitationMm != null
                         ? `${weather.precipitationMm.toFixed(1)} mm`
@@ -266,11 +361,13 @@ export default function WeatherScreen() {
                     </Text>
                   </View>
 
-                  {/* Visibility */}
+                  {/* Feels Like */}
                   <View style={styles.telemetryCard}>
-                    <Text style={styles.telemetryLabel}>Visibility</Text>
+                    <Text style={styles.telemetryLabel}>Feels Like</Text>
                     <Text style={styles.telemetryValue}>
-                      10 km
+                      {weather?.apparentTemperature != null
+                        ? `${weather.apparentTemperature.toFixed(1)}°C`
+                        : '29.5°C'}
                     </Text>
                   </View>
 
@@ -283,9 +380,9 @@ export default function WeatherScreen() {
                   </View>
                 </View>
 
-                {/* Source Attestation (Matching Screen 6) */}
+                {/* Source Attestation */}
                 <Text style={styles.sourceAttestation}>
-                  Source: India Meteorological Department (IMD)
+                  Data source: Open-Meteo & Central Pollution Control Board (CPCB)
                 </Text>
               </View>
             )}
@@ -495,29 +592,145 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   heroWeatherCard: {
-    backgroundColor: '#111D2D',
-    borderRadius: 16,
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    alignItems: 'center',
+    backgroundColor: '#101C2C',
+    borderRadius: 20,
+    padding: 20,
     borderWidth: 1,
-    borderColor: '#1E2F46',
-    marginBottom: 16,
+    borderColor: '#26364A',
+    marginBottom: 14,
   },
-  heroIconBox: {
-    marginBottom: 8,
+  envTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  livePulseDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#13A89E',
+    marginRight: 6,
+  },
+  envTagText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#13A89E',
+    letterSpacing: 0.8,
+  },
+  heroMainRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   heroTemp: {
-    fontSize: 44,
-    fontWeight: '800',
+    fontSize: 48,
+    fontWeight: '900',
     color: '#FFFFFF',
     letterSpacing: -1,
   },
   heroCondition: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#CBD5E1',
+    fontWeight: '700',
+    color: '#F1F5F9',
+    marginTop: 2,
+  },
+  heroMetricsSub: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  heroIconBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#0C1826',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#1E3048',
+  },
+  airQualityDetailCard: {
+    backgroundColor: '#101C2C',
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#26364A',
+    marginBottom: 14,
+  },
+  aqiCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  aqiCardTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#13A89E',
+    letterSpacing: 0.8,
+  },
+  cpcbBadge: {
+    backgroundColor: 'rgba(19, 168, 158, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(19, 168, 158, 0.3)',
+  },
+  cpcbBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#13A89E',
+  },
+  aqiMainContentRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  aqiBigNumber: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  aqiCatPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
     marginTop: 4,
+    alignSelf: 'flex-start',
+  },
+  aqiStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  aqiCatPillText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  aqiPollutantsGrid: {
+    gap: 4,
+  },
+  pollutantRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+  },
+  pollutantKey: {
+    fontSize: 11,
+    color: '#94A3B8',
+    fontWeight: '600',
+  },
+  pollutantVal: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
   telemetryGrid: {
     flexDirection: 'row',

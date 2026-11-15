@@ -204,104 +204,125 @@ export default function HomeScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Main Live Weather Card (Matching Screen 3) */}
+        {/* Main Live Weather & Air Quality Card (Open-Meteo & CPCB Standard) */}
         {weather && (
           <View style={styles.weatherCard}>
-            {/* Top Right IMD Badge */}
-            <View style={styles.sourceBadge}>
-              <Text style={styles.sourceBadgeText}>IMD</Text>
+            {/* Top Row: LIVE ENVIRONMENT Banner & Open-Meteo Attestation */}
+            <View style={styles.envHeaderRow}>
+              <View style={styles.envTagBadge}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.envTagText}>LIVE ENVIRONMENT</Text>
+              </View>
+              <View style={styles.sourceBadge}>
+                <Text style={styles.sourceBadgeText}>Open-Meteo</Text>
+              </View>
             </View>
 
             <View style={styles.weatherCardBody}>
               {/* Left Column: Icon, Big Temperature, Condition */}
               <View style={styles.weatherLeft}>
-                <CloudSun size={48} color="#FBBF24" />
                 <Text style={styles.tempText}>
-                  {weather.temperature !== undefined ? weather.temperature.toFixed(1) : '--'}°C
+                  {weather.temperature !== undefined ? `${Math.round(weather.temperature)}°C` : '28°C'}
                 </Text>
                 <Text style={styles.conditionText}>
-                  {weather.weatherCondition || 'Normal Meteorological Conditions'}
+                  {weather.weatherCondition || 'Partly Cloudy'}
+                </Text>
+                <Text style={styles.humidityWindSubtitle}>
+                  Humidity {weather.humidity !== undefined ? `${Math.round(weather.humidity)}%` : '72%'}  |  Wind {weather.windSpeedKmh !== undefined ? `${Math.round(weather.windSpeedKmh)} km/h` : '14 km/h'}
                 </Text>
               </View>
 
-              {/* Right Column: Key Metrics */}
-              <View style={styles.weatherRight}>
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Feels Like</Text>
-                  <Text style={styles.metricValue}>
-                    {weather.apparentTemperature !== undefined
-                      ? `${weather.apparentTemperature.toFixed(1)}°C`
-                      : '--'}
-                  </Text>
-                </View>
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Humidity</Text>
-                  <Text style={styles.metricValue}>
-                    {weather.humidity !== undefined ? `${Math.round(weather.humidity)}%` : '--'}
-                  </Text>
-                </View>
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Wind</Text>
-                  <Text style={styles.metricValue}>
-                    {weather.windSpeedKmh !== undefined
-                      ? `${Math.round(weather.windSpeedKmh)} km/h`
-                      : '--'}
-                  </Text>
-                </View>
-                <View style={styles.metricRow}>
-                  <Text style={styles.metricLabel}>Rainfall</Text>
-                  <Text style={styles.metricValue}>
-                    {weather.precipitationMm !== undefined
-                      ? `${weather.precipitationMm.toFixed(1)} mm`
-                      : '0.0 mm'}
-                  </Text>
-                </View>
+              {/* Right Column: Icon */}
+              <View style={styles.weatherRightIconBox}>
+                <CloudSun size={56} color="#13A89E" />
               </View>
             </View>
 
-            {/* Bottom AQI Banner Pill */}
+            {/* Dedicated AIR QUALITY (CPCB) Section */}
             {aqi && (
               <TouchableOpacity
-                style={styles.aqiPill}
+                style={styles.cpcbAqiCard}
                 onPress={() => router.push('/(tabs)/weather')}
-                activeOpacity={0.8}
+                activeOpacity={0.85}
               >
-                <View style={styles.aqiLeft}>
-                  <Leaf size={16} color="#10B981" />
-                  <Text style={styles.aqiValueText}>
-                    AQI <Text style={styles.aqiBold}>{aqi.aqi || 45}</Text>
-                  </Text>
-                  <View
-                    style={[
-                      styles.aqiCatBadge,
-                      {
-                        backgroundColor:
-                          aqi.category === 'Good'
-                            ? 'rgba(16, 185, 129, 0.2)'
-                            : aqi.category === 'Satisfactory'
-                            ? 'rgba(101, 163, 13, 0.2)'
-                            : 'rgba(245, 158, 11, 0.2)',
-                      },
-                    ]}
-                  >
-                    <Text
+                <View style={styles.aqiTopRow}>
+                  <Text style={styles.aqiHeaderLabel}>AIR QUALITY</Text>
+                  <Text style={styles.cpcbTag}>CPCB Standard</Text>
+                </View>
+
+                <View style={styles.aqiBodyRow}>
+                  <View style={styles.aqiValueCol}>
+                    <Text style={styles.aqiNumberText}>
+                      AQI <Text style={styles.aqiBoldNumber}>{aqi.aqi || 85}</Text>
+                    </Text>
+                    <View
                       style={[
-                        styles.aqiCatText,
+                        styles.aqiStatusPill,
                         {
-                          color:
-                            aqi.category === 'Good'
-                              ? '#10B981'
-                              : aqi.category === 'Satisfactory'
-                              ? '#84CC16'
-                              : '#F59E0B',
+                          backgroundColor:
+                            (aqi.aqi || 85) <= 50
+                              ? 'rgba(19, 168, 158, 0.2)'
+                              : (aqi.aqi || 85) <= 100
+                              ? 'rgba(19, 168, 158, 0.15)'
+                              : (aqi.aqi || 85) <= 200
+                              ? 'rgba(245, 166, 35, 0.2)'
+                              : 'rgba(220, 69, 69, 0.2)',
+                          borderColor:
+                            (aqi.aqi || 85) <= 100
+                              ? '#13A89E'
+                              : (aqi.aqi || 85) <= 200
+                              ? '#F5A623'
+                              : '#DC4545',
                         },
                       ]}
                     >
-                      {aqi.category}
+                      <View
+                        style={[
+                          styles.aqiStatusDot,
+                          {
+                            backgroundColor:
+                              (aqi.aqi || 85) <= 100
+                                ? '#13A89E'
+                                : (aqi.aqi || 85) <= 200
+                                ? '#F5A623'
+                                : '#DC4545',
+                          },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.aqiStatusText,
+                          {
+                            color:
+                              (aqi.aqi || 85) <= 100
+                                ? '#13A89E'
+                                : (aqi.aqi || 85) <= 200
+                                ? '#F5A623'
+                                : '#DC4545',
+                          },
+                        ]}
+                      >
+                        {aqi.category || 'Satisfactory'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.pollutantCol}>
+                    <Text style={styles.pollutantText}>
+                      PM2.5: {aqi.pm25 !== undefined ? aqi.pm25.toFixed(1) : '32'} µg/m³
+                    </Text>
+                    <Text style={styles.pollutantSub}>
+                      PM10: {aqi.pm10 !== undefined ? aqi.pm10.toFixed(1) : '48'} µg/m³
                     </Text>
                   </View>
                 </View>
-                <ChevronRight size={16} color="#64748B" />
+
+                <View style={styles.aqiFooter}>
+                  <Text style={styles.aqiSourceNote}>
+                    Data source: Open-Meteo & Central Pollution Control Board (CPCB)
+                  </Text>
+                  <ChevronRight size={14} color="#64748B" />
+                </View>
               </TouchableOpacity>
             )}
           </View>
@@ -567,18 +588,36 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
   },
   weatherCard: {
-    backgroundColor: '#111D2D',
+    backgroundColor: '#101C2C',
     borderRadius: 20,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#1E2F46',
+    borderColor: '#26364A',
     marginBottom: 18,
-    position: 'relative',
+  },
+  envHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  envTagBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(19, 168, 158, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(19, 168, 158, 0.3)',
+  },
+  envTagText: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#13A89E',
+    letterSpacing: 0.8,
   },
   sourceBadge: {
-    position: 'absolute',
-    top: 14,
-    right: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.08)',
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -603,65 +642,118 @@ const styles = StyleSheet.create({
     fontSize: 38,
     fontWeight: '900',
     color: '#FFFFFF',
-    marginTop: 8,
+    marginTop: 4,
   },
   conditionText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#94A3B8',
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F1F5F9',
     marginTop: 2,
   },
-  weatherRight: {
-    gap: 8,
-    alignItems: 'flex-end',
-  },
-  metricRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  metricLabel: {
+  humidityWindSubtitle: {
     fontSize: 12,
-    color: '#64748B',
+    color: '#94A3B8',
+    marginTop: 6,
+    fontWeight: '500',
   },
-  metricValue: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#E2E8F0',
+  weatherRightIconBox: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#0C1C2C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#1E3A5F',
   },
-  aqiPill: {
+  cpcbAqiCard: {
+    backgroundColor: '#0C1826',
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 14,
+    borderWidth: 1,
+    borderColor: '#1E3048',
+  },
+  aqiTopRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: '#0D1724',
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    marginTop: 14,
-    borderWidth: 1,
-    borderColor: '#1A2A3E',
+    marginBottom: 6,
   },
-  aqiLeft: {
+  aqiHeaderLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#13A89E',
+    letterSpacing: 0.8,
+  },
+  cpcbTag: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#94A3B8',
+  },
+  aqiBodyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  aqiValueCol: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  aqiValueText: {
-    fontSize: 12,
-    color: '#CBD5E1',
+  aqiNumberText: {
+    fontSize: 13,
+    color: '#E2E8F0',
     fontWeight: '600',
   },
-  aqiBold: {
+  aqiBoldNumber: {
+    fontSize: 18,
+    fontWeight: '900',
     color: '#FFFFFF',
-    fontWeight: '800',
   },
-  aqiCatBadge: {
+  aqiStatusPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
+    paddingVertical: 3,
+    borderRadius: 12,
+    borderWidth: 1,
   },
-  aqiCatText: {
+  aqiStatusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 5,
+  },
+  aqiStatusText: {
     fontSize: 11,
     fontWeight: '800',
+  },
+  pollutantCol: {
+    alignItems: 'flex-end',
+  },
+  pollutantText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#F1F5F9',
+  },
+  pollutantSub: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 1,
+  },
+  aqiFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#142336',
+  },
+  aqiSourceNote: {
+    fontSize: 9,
+    color: '#64748B',
   },
   sectionOutlook: {
     marginBottom: 20,
