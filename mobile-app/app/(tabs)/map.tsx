@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -26,18 +26,22 @@ import {
   SlidersHorizontal,
   Compass,
   Globe,
+  Crosshair,
 } from 'lucide-react-native';
 import { IndiaDisasterMapRegion } from '../../types';
 import { useLocation } from '../../context/LocationContext';
-import LiveGoogleMap from '../../components/LiveGoogleMap';
+import LiveGoogleMap, { LiveGoogleMapRef } from '../../components/LiveGoogleMap';
 
 export default function IndiaDisasterMapScreen() {
   const router = useRouter();
-  const { location } = useLocation();
+  const { location, detectGpsLocation } = useLocation();
+  const mapRef = useRef<LiveGoogleMapRef>(null);
 
   const [selectedRegionId, setSelectedRegionId] = useState<string>('MAP-IN-KA-KDG');
   const [activeLayer, setActiveLayer] = useState<'ALERTS' | 'SHELTERS'>('ALERTS');
   const [mapViewMode, setMapViewMode] = useState<'GOOGLE_MAPS' | 'INDIA_VECTOR'>('GOOGLE_MAPS');
+  const [scrollEnabled, setScrollEnabled] = useState(true);
+  const [filterLevel, setFilterLevel] = useState<'ALL' | 'RED' | 'ORANGE' | 'YELLOW'>('ALL');
 
   const {
     data: regions = [],
@@ -61,8 +65,33 @@ export default function IndiaDisasterMapScreen() {
       ),
   });
 
+  const filteredRegions = regions.filter((r) => {
+    if (filterLevel === 'ALL') return true;
+    return r.alertLevel === filterLevel;
+  });
+
   const selectedRegion =
     regions.find((r) => r.id === selectedRegionId) || regions[0];
+
+  const handleSelectRegion = (item: IndiaDisasterMapRegion) => {
+    setSelectedRegionId(item.id);
+    if (mapRef.current) {
+      mapRef.current.focusRegion(item.latitude, item.longitude, 10);
+    }
+  };
+
+  const handleFocusMyLocation = async () => {
+    await detectGpsLocation();
+    if (mapRef.current) {
+      mapRef.current.focusMyLocation();
+    }
+  };
+
+  const handleFitAllIndia = () => {
+    if (mapRef.current) {
+      mapRef.current.resetToAllIndia();
+    }
+  };
 
   return (
     <View style={styles.screen}>
@@ -70,6 +99,7 @@ export default function IndiaDisasterMapScreen() {
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
+        scrollEnabled={scrollEnabled}
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
@@ -102,7 +132,7 @@ export default function IndiaDisasterMapScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Real-World Google Map vs India Overview Segment Switcher */}
+        {/* Mode Switcher */}
         <View style={styles.modeSwitcher}>
           <TouchableOpacity
             style={[styles.modeBtn, mapViewMode === 'GOOGLE_MAPS' && styles.modeBtnActive]}
@@ -111,7 +141,7 @@ export default function IndiaDisasterMapScreen() {
           >
             <Globe size={14} color={mapViewMode === 'GOOGLE_MAPS' ? '#FFFFFF' : '#94A3B8'} />
             <Text style={[styles.modeBtnText, mapViewMode === 'GOOGLE_MAPS' && styles.modeBtnTextActive]}>
-              Live Google Map
+              Live Interactive Map
             </Text>
           </TouchableOpacity>
 
@@ -127,43 +157,129 @@ export default function IndiaDisasterMapScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* VIEW MODE 1: REAL-WORLD LIVE GOOGLE MAP */}
+        {/* Hazard Quick Filter Bar */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterChipRow}
+        >
+          <TouchableOpacity
+            style={[styles.filterChip, filterLevel === 'ALL' && styles.filterChipActive]}
+            onPress={() => setFilterLevel('ALL')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.filterChipText, filterLevel === 'ALL' && styles.filterChipTextActive]}>
+              All Zones ({regions.length})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, filterLevel === 'RED' && styles.filterChipActiveRed]}
+            onPress={() => setFilterLevel('RED')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.filterDot, { backgroundColor: '#DC2626' }]} />
+            <Text style={[styles.filterChipText, filterLevel === 'RED' && styles.filterChipTextActive]}>
+              Red Alerts
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, filterLevel === 'ORANGE' && styles.filterChipActiveOrange]}
+            onPress={() => setFilterLevel('ORANGE')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.filterDot, { backgroundColor: '#EA580C' }]} />
+            <Text style={[styles.filterChipText, filterLevel === 'ORANGE' && styles.filterChipTextActive]}>
+              Orange Alerts
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, filterLevel === 'YELLOW' && styles.filterChipActiveYellow]}
+            onPress={() => setFilterLevel('YELLOW')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.filterDot, { backgroundColor: '#EAB308' }]} />
+            <Text style={[styles.filterChipText, filterLevel === 'YELLOW' && styles.filterChipTextActive]}>
+              Yellow Alerts
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.filterChipAction}
+            onPress={handleFocusMyLocation}
+            activeOpacity={0.7}
+          >
+            <Crosshair size={13} color="#38BDF8" />
+            <Text style={styles.filterChipActionText}>My GPS</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.filterChipAction}
+            onPress={handleFitAllIndia}
+            activeOpacity={0.7}
+          >
+            <Globe size={13} color="#10B981" />
+            <Text style={styles.filterChipActionText}>All India</Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* VIEW MODE 1: REAL-WORLD LIVE INTERACTIVE MAP */}
         {mapViewMode === 'GOOGLE_MAPS' ? (
           <View style={styles.googleMapWrapper}>
             <View style={styles.layerInfoRow}>
               <View style={styles.layerTag}>
                 <MapPin size={13} color="#38BDF8" />
                 <Text style={styles.layerTagText}>
-                  {location.district.toUpperCase()} LIVE TELEMETRY
+                  LIVE INDIA DISASTER SATELLITE RADAR
                 </Text>
               </View>
-              <Text style={styles.sourceText}>Google Maps Platform API</Text>
+              <Text style={styles.sourceText}>IMD / NDMA / CPCB</Text>
             </View>
 
-            <LiveGoogleMap
-              latitude={location.latitude}
-              longitude={location.longitude}
-              district={location.district}
-              state={location.state}
-              shelters={intel?.nearbyShelters || []}
-              alertLevel={intel?.districtAlert?.imdColorCode || 'YELLOW'}
-              alertHeadline={intel?.districtAlert?.headline || 'Active Monitoring Zone'}
-              height={380}
-            />
+            {/* Touch isolation wrapper prevents ScrollView from hijacking map zoom/pan */}
+            <View
+              style={styles.mapTouchWrapper}
+              onTouchStart={() => setScrollEnabled(false)}
+              onTouchEnd={() => setScrollEnabled(true)}
+              onTouchCancel={() => setScrollEnabled(true)}
+            >
+              <LiveGoogleMap
+                ref={mapRef}
+                latitude={location.latitude}
+                longitude={location.longitude}
+                district={location.district}
+                state={location.state}
+                disasterRegions={filteredRegions}
+                shelters={intel?.nearbyShelters || []}
+                alertLevel={intel?.districtAlert?.imdColorCode || 'YELLOW'}
+                alertHeadline={intel?.districtAlert?.headline || 'Active Monitoring Zone'}
+                height={420}
+              />
+            </View>
 
-            {/* Google Maps Controls Legend */}
+            {/* Map Controls Legend */}
             <View style={styles.gmapLegend}>
               <View style={styles.gmapLegendItem}>
                 <View style={[styles.gmapDot, { backgroundColor: '#38BDF8' }]} />
-                <Text style={styles.gmapLegendText}>Your GPS Pin</Text>
-              </View>
-              <View style={styles.gmapLegendItem}>
-                <View style={[styles.gmapDot, { backgroundColor: '#10B981' }]} />
-                <Text style={styles.gmapLegendText}>NDMA Relief Shelter</Text>
+                <Text style={styles.gmapLegendText}>Your GPS</Text>
               </View>
               <View style={styles.gmapLegendItem}>
                 <View style={[styles.gmapDot, { backgroundColor: '#DC2626' }]} />
-                <Text style={styles.gmapLegendText}>Hazard Warning Perimeter</Text>
+                <Text style={styles.gmapLegendText}>Red Alert</Text>
+              </View>
+              <View style={styles.gmapLegendItem}>
+                <View style={[styles.gmapDot, { backgroundColor: '#EA580C' }]} />
+                <Text style={styles.gmapLegendText}>Orange Alert</Text>
+              </View>
+              <View style={styles.gmapLegendItem}>
+                <View style={[styles.gmapDot, { backgroundColor: '#EAB308' }]} />
+                <Text style={styles.gmapLegendText}>Yellow Alert</Text>
+              </View>
+              <View style={styles.gmapLegendItem}>
+                <View style={[styles.gmapDot, { backgroundColor: '#10B981' }]} />
+                <Text style={styles.gmapLegendText}>Shelter</Text>
               </View>
             </View>
           </View>
@@ -322,36 +438,46 @@ export default function IndiaDisasterMapScreen() {
           </TouchableOpacity>
         )}
 
-        {/* Monitored Indian Districts List */}
+        {/* Monitored Indian Disaster Hotspots List */}
         <View style={styles.listSection}>
-          <Text style={styles.listTitle}>Active Regional Bulletins ({regions.length})</Text>
+          <View style={styles.listSectionHeader}>
+            <Text style={styles.listTitle}>
+              Disaster Affected Hotspots ({filteredRegions.length})
+            </Text>
+            <Text style={styles.listSubTitle}>Tap hotspot to fly & zoom map</Text>
+          </View>
 
-          {regions.map((item) => {
+          {filteredRegions.map((item) => {
             const isSelected = item.id === selectedRegionId;
             const badgeBg =
               item.alertLevel === 'RED'
                 ? '#DC2626'
                 : item.alertLevel === 'ORANGE'
-                ? '#D97706'
-                : '#CA8A04';
+                ? '#EA580C'
+                : '#EAB308';
 
             return (
               <TouchableOpacity
                 key={item.id}
                 style={[styles.regionRow, isSelected && styles.regionRowActive]}
-                onPress={() => setSelectedRegionId(item.id)}
+                onPress={() => handleSelectRegion(item)}
                 activeOpacity={0.7}
               >
                 <View style={[styles.badgeIndicator, { backgroundColor: badgeBg }]} />
                 <View style={styles.regionInfo}>
-                  <Text style={styles.regionName}>
-                    {item.district}, {item.state}
+                  <View style={styles.rowTitleWrap}>
+                    <Text style={styles.regionName}>
+                      {item.district}, {item.state}
+                    </Text>
+                    <View style={[styles.microBadge, { backgroundColor: badgeBg }]}>
+                      <Text style={styles.microBadgeText}>{item.alertLevel}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.regionAlert} numberOfLines={1}>
+                    {item.hazardType.replace('_', ' ')} • {item.headline}
                   </Text>
-                  <Text style={styles.regionAlert}>{item.headline}</Text>
                 </View>
-                <Text style={[styles.alertTag, { color: badgeBg }]}>
-                  {item.alertLevel}
-                </Text>
+                <ChevronRight size={16} color="#64748B" />
               </TouchableOpacity>
             );
           })}
@@ -426,8 +552,75 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '700',
   },
+  filterChipRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+    paddingVertical: 2,
+  },
+  filterChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#111D2D',
+    borderWidth: 1,
+    borderColor: '#1E2F46',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  filterChipActive: {
+    backgroundColor: '#1E2F46',
+    borderColor: '#38BDF8',
+  },
+  filterChipActiveRed: {
+    backgroundColor: '#2A1215',
+    borderColor: '#DC2626',
+  },
+  filterChipActiveOrange: {
+    backgroundColor: '#2A1A12',
+    borderColor: '#EA580C',
+  },
+  filterChipActiveYellow: {
+    backgroundColor: '#2A2512',
+    borderColor: '#EAB308',
+  },
+  filterDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  filterChipText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#94A3B8',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '700',
+  },
+  filterChipAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#162335',
+    borderWidth: 1,
+    borderColor: '#263D5C',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 5,
+  },
+  filterChipActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#E2E8F0',
+  },
   googleMapWrapper: {
     marginBottom: 16,
+  },
+  mapTouchWrapper: {
+    borderRadius: 16,
+    overflow: 'hidden',
   },
   gmapLegend: {
     flexDirection: 'row',
@@ -624,5 +817,46 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  highlightHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  alertLevelPill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  alertLevelPillText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
+  },
+  listSectionHeader: {
+    marginBottom: 12,
+  },
+  listSubTitle: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+  },
+  rowTitleWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingRight: 6,
+  },
+  microBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  microBadgeText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });
